@@ -49,7 +49,6 @@ fn main() -> anyhow::Result<()> {
         None => {
             let v4: std::net::Ipv4Addr = "0.0.0.0".parse::<std::net::Ipv4Addr>().unwrap();
             let v6: std::net::Ipv6Addr = "::".parse::<std::net::Ipv6Addr>().unwrap();
-            println!("{}", v6.to_ipv4_mapped().unwrap().to_string());
             let addrs = [
                 std::net::SocketAddr::from((std::net::IpAddr::V4(v4), port)),
                 std::net::SocketAddr::from((std::net::IpAddr::V6(v6), port)),

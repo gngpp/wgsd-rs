@@ -9,6 +9,6 @@ fn main() -> core::result::Result<(), String> {
     if addr.is_ipv4() {
         println!("{} is ipv4", &&addr);
     }
-    
+
     Ok(())
 }
