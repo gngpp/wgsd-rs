@@ -3,7 +3,7 @@ use clap::{Arg, ArgAction, Command};
 fn main() -> anyhow::Result<()> {
     let matches = Command::new("wgsd-rs")
         .version("1.0")
-        .author("Kevin K. <kbknapp@gmail.com>")
+        .author("gngpp. <gngppz@gmail.com>")
         .about("WireGuard configure the service discovery tool")
         .arg(
             Arg::new("server")
