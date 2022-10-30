@@ -54,7 +54,6 @@ fn main() -> anyhow::Result<()> {
                 std::net::SocketAddr::from((std::net::IpAddr::V4(v4), port)),
                 std::net::SocketAddr::from((std::net::IpAddr::V6(v6), port)),
             ];
-            let v4 = std::net::SocketAddrV4::new(std::net::Ipv4Addr::new(0, 0, 0, 0), port);
             let tcp = std::net::TcpListener::bind(&addrs[..])?;
             println!("server listent to {}", v4.to_string());
             for _t in tcp.incoming() {}
