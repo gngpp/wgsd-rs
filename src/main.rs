@@ -30,6 +30,7 @@ fn main() -> anyhow::Result<()> {
                 .help("Bind to a specific client/server port (TCP, temporary port by default)")
                 .required(true),
         )
+        .arg_required_else_help(true)
         .get_matches();
 
     // Note, it's safe to call unwrap() because the arg is required
