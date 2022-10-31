@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.66"
 clap = "4.0.18"
+ipnet = "2.5.0"

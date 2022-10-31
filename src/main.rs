@@ -1,4 +1,5 @@
 use clap::{Arg, ArgAction, Command};
+pub(crate) mod conf;
 
 fn main() -> anyhow::Result<()> {
     let matches = Command::new("wgsd-rs")
@@ -18,7 +19,7 @@ fn main() -> anyhow::Result<()> {
                 .short('c')
                 .long("client")
                 .value_name("host")
-                .value_parser(verify_host)
+                .value_parser(conf::util::verify_host)
                 .group("mode")
                 .help("Run in client mode, connecting to <host>"),
         )
@@ -26,7 +27,7 @@ fn main() -> anyhow::Result<()> {
             Arg::new("port")
                 .short('p')
                 .long("port")
-                .value_parser(verify_port_in_range)
+                .value_parser(conf::util::verify_port_in_range)
                 .help("Bind to a specific client/server port (TCP, temporary port by default)")
                 .required(true),
         )
@@ -60,28 +61,4 @@ fn main() -> anyhow::Result<()> {
         }
     };
     Ok(())
-}
-
-fn verify_host(s: &str) -> Result<std::net::IpAddr, String> {
-    let addr: std::net::IpAddr = s
-        .parse::<std::net::IpAddr>()
-        .map_err(|_| format!("`{}` isn't a ip address", s))?;
-    Ok(addr)
-}
-
-const PORT_RANGE: std::ops::RangeInclusive<usize> = 1024..=65535;
-
-fn verify_port_in_range(s: &str) -> Result<u16, String> {
-    let port: usize = s
-        .parse()
-        .map_err(|_| format!("`{}` isn't a port number", s))?;
-    if PORT_RANGE.contains(&port) {
-        Ok(port as u16)
-    } else {
-        Err(format!(
-            "Port not in range {}-{}",
-            PORT_RANGE.start(),
-            PORT_RANGE.end()
-        ))
-    }
 }
