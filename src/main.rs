@@ -1,9 +1,10 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::io::{Read, Write};
 pub(crate) mod conf;
+mod handler;
 
 fn main() -> anyhow::Result<()> {
-    let matches = Command::new("wgsdc-rs")
+    let matches = Command::new("wgsdc")
         .name("wgsdc")
         .version("1.0")
         .propagate_version(true)
@@ -11,18 +12,48 @@ fn main() -> anyhow::Result<()> {
         .arg_required_else_help(true)
         .author("gngpp. <gngppz@gmail.com>")
         .about("WireGuard configure the service discovery tool")
-        .subcommand(
+        .subcommands([
+            Command::new("add-interface")
+                .about("Add a new Interface")
+                .propagate_version(true)
+                .arg_required_else_help(true)
+                .arg(
+                    Arg::new("add-interface_name")
+                        .long("name")
+                        .value_name("name")
+                        .action(ArgAction::Set)
+                        .help("Interface's WireGuard name")
+                        .required(true),
+                ),
             Command::new("add-peer")
                 .about("Add a new peer")
                 .propagate_version(true)
-                .subcommand_required(false)
                 .arg_required_else_help(true)
                 .arg(
-                    Arg::new("addr")
-                        .long("addr")
-                        .help("Required configuration file to use"),
+                    Arg::new("add-peer_v4-addr")
+                        .long("v4-addr")
+                        .value_name("address")
+                        .action(ArgAction::Set)
+                        .help("Peer's WireGuard IPv4 Address"),
+                )
+                .arg(
+                    Arg::new("add-peer_v6-addr")
+                        .long("v6-addr")
+                        .value_name("address")
+                        .action(ArgAction::Set)
+                        .help("Peer's WireGuard IPv4 Address"),
+                )
+                .arg(
+                    Arg::new("tag")
+                        .long("tag")
+                        .action(ArgAction::Set)
+                        .help("Peer tag name"),
                 ),
-        )
+            Command::new("revoke-peer")
+                .about("Revoke existing peer")
+                .propagate_version(true)
+                .arg_required_else_help(true),
+        ])
         .arg(
             Arg::new("server")
                 .short('s')
@@ -49,7 +80,7 @@ fn main() -> anyhow::Result<()> {
                 .action(ArgAction::Set)
                 .value_parser(conf::util::verify_port_in_range)
                 .help("Bind to a specific client/server port (TCP, temporary port by default)")
-                .requires("client")
+                .requires("client"),
         )
         .arg(
             Arg::new("token")
@@ -58,6 +89,10 @@ fn main() -> anyhow::Result<()> {
                 .requires("client"),
         )
         .get_matches();
+
+    handler::subcommand_add_interface_handler(&matches)?;
+    handler::subcommand_add_peer_handler(&matches)?;
+    handler::subcommand_revoke_peer_handler(&matches)?;
 
     client_handler(&matches)?;
     server_handler(&matches)?;
