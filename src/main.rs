@@ -1,7 +1,15 @@
+use clap::builder::Str;
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use ipnet::IpNet;
 use std::io::{Read, Write};
+
 pub(crate) mod conf;
 mod handler;
+pub mod parser;
+
+const DEFAULT_INTERFACE_ADDRESS: &str = "10.66.66.1/24, fd42:42:42::1/64";
+const DEFAULT_INTERFACE_LISTEN_PORT: &str = "51820";
+const DEFAULT_INTERFACE_MTU: &str = "1420";
 
 fn main() -> anyhow::Result<()> {
     let matches = Command::new("wgsdc")
@@ -20,10 +28,58 @@ fn main() -> anyhow::Result<()> {
                 .arg(
                     Arg::new("add-interface_name")
                         .long("name")
+                        .short('n')
                         .value_name("name")
-                        .action(ArgAction::Set)
                         .help("Interface's WireGuard name")
                         .required(true),
+                )
+                .arg(
+                    Arg::new("add-interface_address")
+                        .long("address")
+                        .value_name("address")
+                        .default_value(DEFAULT_INTERFACE_ADDRESS)
+                        .value_parser(parser::parser_address_in_range)
+                        .help("Interface's WireGuard address"),
+                )
+                .arg(
+                    Arg::new("add-interface_listen-port")
+                        .long("listen-port")
+                        .value_name("port")
+                        .default_value(DEFAULT_INTERFACE_LISTEN_PORT)
+                        .value_parser(parser::parser_port_in_range)
+                        .help("Interface's WireGuard listen port"),
+                )
+                .arg(
+                    Arg::new("add-interface_mtu")
+                        .long("mtu")
+                        .value_name("mtu")
+                        .default_value(DEFAULT_INTERFACE_MTU)
+                        .value_parser(parser::parser_mtu)
+                        .help("Interface's WireGuard mtu"),
+                )
+                .arg(
+                    Arg::new("add-interface_post-up")
+                        .long("post-up")
+                        .value_name("command")
+                        .help("Interface's WireGuard PostUp command"),
+                )
+                .arg(
+                    Arg::new("add-interface_post-down")
+                        .long("post-down")
+                        .value_name("command")
+                        .help("Interface's WireGuard PostDown command"),
+                )
+                .arg(
+                    Arg::new("add-interface_pre-up")
+                        .long("pre-up")
+                        .value_name("command")
+                        .help("Interface's WireGuard PreUp command"),
+                )
+                .arg(
+                    Arg::new("add-interface_pre-down")
+                        .long("pre-down")
+                        .value_name("command")
+                        .help("Interface's WireGuard PreDown command"),
                 ),
             Command::new("add-peer")
                 .about("Add a new peer")
@@ -33,22 +89,15 @@ fn main() -> anyhow::Result<()> {
                     Arg::new("add-peer_v4-addr")
                         .long("v4-addr")
                         .value_name("address")
-                        .action(ArgAction::Set)
                         .help("Peer's WireGuard IPv4 Address"),
                 )
                 .arg(
                     Arg::new("add-peer_v6-addr")
                         .long("v6-addr")
                         .value_name("address")
-                        .action(ArgAction::Set)
                         .help("Peer's WireGuard IPv4 Address"),
                 )
-                .arg(
-                    Arg::new("tag")
-                        .long("tag")
-                        .action(ArgAction::Set)
-                        .help("Peer tag name"),
-                ),
+                .arg(Arg::new("tag").long("tag").help("Peer tag name")),
             Command::new("revoke-peer")
                 .about("Revoke existing peer")
                 .propagate_version(true)
@@ -67,8 +116,7 @@ fn main() -> anyhow::Result<()> {
                 .short('c')
                 .long("client")
                 .value_name("host")
-                .action(ArgAction::Set)
-                .value_parser(conf::util::verify_host)
+                .value_parser(parser::parser_host)
                 .group("mode")
                 .requires("port")
                 .help("Run in client mode, connecting to <host>"),
@@ -77,8 +125,7 @@ fn main() -> anyhow::Result<()> {
             Arg::new("port")
                 .short('p')
                 .long("port")
-                .action(ArgAction::Set)
-                .value_parser(conf::util::verify_port_in_range)
+                .value_parser(parser::parser_port_in_range)
                 .help("Bind to a specific client/server port (TCP, temporary port by default)")
                 .requires("client"),
         )
@@ -94,47 +141,7 @@ fn main() -> anyhow::Result<()> {
     handler::subcommand_add_peer_handler(&matches)?;
     handler::subcommand_revoke_peer_handler(&matches)?;
 
-    client_handler(&matches)?;
-    server_handler(&matches)?;
-    Ok(())
-}
-
-fn client_handler(arg: &ArgMatches) -> anyhow::Result<()> {
-    if let Some(addr) = arg.get_one::<std::net::IpAddr>("client") {
-        let port = *arg.get_one::<u16>("port").unwrap_or(&(0 as u16));
-        let socket = std::net::SocketAddr::new(*addr, port);
-        let mut connect = std::net::TcpStream::connect(socket)?;
-        println!("connect to {}", connect.local_addr()?);
-
-        connect.write(b"client")?;
-    };
-    Ok(())
-}
-
-fn server_handler(arg: &ArgMatches) -> anyhow::Result<()> {
-    match arg.get_one::<bool>("server") {
-        None => {}
-        Some(b) => {
-            if *b {
-                let port = *arg.get_one::<u16>("port").unwrap_or(&(0 as u16));
-                let v4: std::net::Ipv4Addr = "0.0.0.0".parse::<std::net::Ipv4Addr>()?;
-                let v6: std::net::Ipv6Addr = "::".parse::<std::net::Ipv6Addr>()?;
-                let addrs = [
-                    std::net::SocketAddr::from((std::net::IpAddr::V4(v4), port)),
-                    std::net::SocketAddr::from((std::net::IpAddr::V6(v6), port)),
-                ];
-                let tcp_listen = std::net::TcpListener::bind(&addrs[..])?;
-                println!("server listen to {}", tcp_listen.local_addr()?);
-                loop {
-                    for incoming in tcp_listen.accept() {
-                        let mut tcp_stream = incoming.0;
-                        let mut input = String::new();
-                        let _ = tcp_stream.read_to_string(&mut input)?;
-                        println!("{:?} says {}", incoming.1, input);
-                    }
-                }
-            }
-        }
-    }
+    handler::command_client_handler(&matches)?;
+    handler::command_server_handler(&matches)?;
     Ok(())
 }
