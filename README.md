@@ -1,1 +1,1 @@
-# wgsdc-rs
+# wgsdc
