@@ -1,7 +1,8 @@
 use anyhow::anyhow;
 
+// host address parser
 pub(crate) fn parser_host(s: &str) -> anyhow::Result<std::net::IpAddr> {
-    let addr: std::net::IpAddr = s
+    let addr = s
         .parse::<std::net::IpAddr>()
         .map_err(|_| anyhow!(format!("`{}` isn't a ip address", s)))?;
     Ok(addr)
@@ -9,6 +10,7 @@ pub(crate) fn parser_host(s: &str) -> anyhow::Result<std::net::IpAddr> {
 
 const PORT_RANGE: std::ops::RangeInclusive<usize> = 1024..=65535;
 
+// port range parser
 pub(crate) fn parser_port_in_range(s: &str) -> anyhow::Result<u16> {
     let port: usize = s
         .parse()
@@ -23,6 +25,7 @@ pub(crate) fn parser_port_in_range(s: &str) -> anyhow::Result<u16> {
     )))
 }
 
+// address list range parser
 pub(crate) fn parser_address_in_range(s: &str) -> anyhow::Result<Vec<ipnet::IpNet>> {
     let vec: Vec<&str> = s.split(",").map(|v| v.trim()).collect();
     let mut res = Vec::new();

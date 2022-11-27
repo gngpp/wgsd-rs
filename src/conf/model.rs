@@ -1,5 +1,4 @@
-use std::fmt::format;
-use std::ops::Deref;
+use super::NodeProperty;
 
 extern crate ipnet;
 
@@ -17,15 +16,14 @@ impl WgConfig {
     }
     pub fn get_config(&self) -> Vec<String> {
         let mut lines: Vec<String> = Vec::new();
-        lines.push(self.interface.tag());
         lines.push(String::from("[Interface]"));
         lines.push(format!("Address = {}", self.interface.address()));
         lines.push(format!("PrivateKey = {}", self.interface.private_key()));
         lines.push(format!("ListenPort = {}", self.interface.listen_port()));
         lines.push(format!("MTU = {}\n", self.interface.mtu()));
+        lines.push(format!("Description = {}", self.interface.description()));
 
         for peer in self.peer_list.iter() {
-            lines.push(peer.tag());
             lines.push(String::from("[Peer]"));
             lines.push(format!("PublicKey = {}", peer.public_key()));
             lines.push(format!("AllowedIPs = {}", peer.allowed_ips()));
@@ -34,16 +32,18 @@ impl WgConfig {
                 "PersistentKeepalive = {}\n",
                 peer.persistent_keepalive()
             ));
+            lines.push(format!("Description = {}", peer.description()))
         }
         lines
     }
 }
 
+// interface configuration of wireguard
 pub struct Interface {
     // node mode (client/server)
     is_server: bool,
     // tag name
-    tag: Option<String>,
+    description: Option<String>,
     // interface WireGuard address
     address: Option<Vec<ipnet::IpNet>>,
     // interface private key
@@ -60,14 +60,6 @@ pub struct Interface {
 }
 
 impl Interface {
-    //noinspection DuplicatedCode
-    pub fn tag(&self) -> String {
-        if let Some(ref tag) = self.tag {
-            return format!("#{}", tag.to_string());
-        }
-        return String::new();
-    }
-
     pub fn address(&self) -> String {
         if let Some(ref address_list) = self.address {
             return address_list
@@ -93,7 +85,17 @@ impl Interface {
         return String::from("empty");
     }
 
-    pub fn mtu(&self) -> String {
+}
+
+impl NodeProperty for Interface {
+    fn description(&self) -> String {
+        if let Some(ref tag) = self.description {
+            return tag.to_string()
+        }
+        return String::new();
+    }
+
+    fn mtu(&self) -> String {
         if let Some(ref mtu) = self.mtu {
             return mtu.to_string();
         }
@@ -103,7 +105,7 @@ impl Interface {
 
 pub struct Peer {
     // tag name
-    tag: Option<String>,
+    description: Option<String>,
     // peer's public key
     public_key: Option<String>,
     // peer's router allowed_ips
@@ -111,18 +113,13 @@ pub struct Peer {
     // keep alive interval
     persistent_keepalive: Option<u16>,
     // peet endpoint
-    endpoint: Option<PeerEndpoint>,
+    endpoint: Option<Endpoint>
 }
 
-impl Peer {
-    //noinspection DuplicatedCode
-    pub fn tag(&self) -> String {
-        if let Some(ref tag) = self.tag {
-            return format!("#{}", tag.to_string());
-        }
-        return String::new();
-    }
 
+
+// peer configuration of wireguard
+impl Peer {
     pub fn allowed_ips(&self) -> String {
         if let Some(ref allowed_ips) = self.allowed_ips {
             return allowed_ips
@@ -156,11 +153,25 @@ impl Peer {
     }
 }
 
+impl NodeProperty for Peer{
+    fn description(&self) -> String {
+        if let Some(ref tag) = self.description {
+            return tag.to_string();
+        }
+        return String::new();
+    }
+
+    fn mtu(&self) -> String {
+        todo!()
+    }
+}
+
+// node configuration of wireguard
 pub struct Node {
     // node mode (client/server)
     is_server: bool,
     // peer tag name
-    tag: Option<String>,
+    description: Option<String>,
     // server peer address
     address: Option<Vec<ipnet::IpNet>>,
     // peet's public key
@@ -176,17 +187,17 @@ pub struct Node {
     // keep alive interval
     persistent_keepalive: Option<u16>,
     // peet endpoint
-    endpoint: Option<PeerEndpoint>,
+    endpoint: Option<Endpoint>,
 
-    pub mtu: Option<u32>,
+    mtu: Option<u32>,
 
-    pub pre_up: Option<String>,
+    pre_up: Option<String>,
 
-    pub post_up: Option<String>,
+    post_up: Option<String>,
 
-    pub pre_down: Option<String>,
+    pre_down: Option<String>,
 
-    pub post_down: Option<String>,
+    post_down: Option<String>,
 }
 
 impl Node {
@@ -194,7 +205,7 @@ impl Node {
         (
             Interface {
                 is_server: self.is_server,
-                tag: self.tag,
+                description: self.description,
                 address: self.address,
                 private_key: self.private_key,
                 listen_port: self.listen_port,
@@ -211,7 +222,7 @@ impl Node {
     pub fn to_peer(self) -> (Peer, Option<String>) {
         (
             Peer {
-                tag: self.tag,
+                description: self.description,
                 public_key: self.public_key,
                 allowed_ips: self.allowed_ips,
                 persistent_keepalive: self.persistent_keepalive,
@@ -222,12 +233,13 @@ impl Node {
     }
 }
 
-pub struct PeerEndpoint {
+// peer endpoint configuration of wireguard
+pub struct Endpoint {
     address: std::net::IpAddr,
     port: u16,
 }
 
-impl PeerEndpoint {
+impl Endpoint {
     pub fn new(addr: std::net::IpAddr, port: u16) -> Self {
         Self {
             address: addr,
@@ -236,7 +248,7 @@ impl PeerEndpoint {
     }
 }
 
-impl ToString for PeerEndpoint {
+impl ToString for Endpoint {
     fn to_string(&self) -> String {
         format!("{}:{}", self.address, self.port)
     }
