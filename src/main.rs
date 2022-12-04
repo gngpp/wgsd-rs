@@ -110,6 +110,10 @@ struct AddPeer {
     #[arg(long, short)]
     description: Option<String>,
 
+    /// Peer name
+    #[arg(long, short)]
+    name: String,
+
     /// Peer AllowedIPs
     #[arg(long, value_parser = parser::parser_address_in_range)]
     allowed_ips: std::vec::Vec<ipnet::IpNet>,
@@ -128,7 +132,11 @@ struct AddPeer {
 }
 
 #[derive(Args)]
-struct RevokePeer {}
+struct RevokePeer {
+    /// Peer name
+    #[arg(long, short)]
+    name: String,
+}
 
 #[derive(Args)]
 struct Conf {
