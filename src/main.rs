@@ -36,7 +36,7 @@ struct CLI {
 
     /// Use configuration
     #[arg(global = true, default_value = "wg0")]
-    config: Option<String>,
+    config: String,
 
     /// Subcommands
     #[command(subcommand)]
