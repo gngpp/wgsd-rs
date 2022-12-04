@@ -19,11 +19,11 @@ struct CLI {
     debug: bool,
 
     /// Run in server mode
-    #[arg(short, long, group = "wgsdc", requires = "token")]
+    #[arg(short, long, group = "wgsdc", requires = "port")]
     server: bool,
 
     /// Run in client mode, connecting to <host>
-    #[arg(short, long, value_parser = parser::parser_host, value_name = "HOST", group = "wgsdc", requires = "token")]
+    #[arg(short, long, value_parser = parser::parser_address, value_name = "HOST", group = "wgsdc", requires = "port")]
     client: Option<std::net::IpAddr>,
 
     /// Bind to a specific client/server port (TCP, temporary port by 1024-65535)
@@ -55,7 +55,11 @@ enum SubCommands {
 
     /// Revoke WireGuard existing peer
     #[command(arg_required_else_help = true)]
-    RevokePeer(RevokePeer),
+    RevokePeer{
+        /// Revoke peer
+        #[arg(long, short, required = true)]
+        name: String
+    },
 
     /// WireGuard Configuration
     #[command(arg_required_else_help = true)]
@@ -69,8 +73,8 @@ struct AddInterface {
     #[arg(long)]
     name: String,
 
-    /// Interface's WireGuard Peer Endpoint address
-    #[arg(long, value_name = "ADDRESS", value_parser = parser::parser_host)]
+    /// Interface's WireGuard Peer Endpoint address/domain
+    #[arg(long, value_name = "HOST", value_parser = parser::parser_host)]
     endpoint: String,
 
     /// Interface's WireGuard address
@@ -127,12 +131,6 @@ struct AddPeer {
     /// Peer endpoint allowed ips
     #[arg(long, value_name = "ALLOWED_IPS", default_value = DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, value_parser = parser::parser_address_in_range)]
     endpoint_allowed_ips: std::vec::Vec<ipnet::IpNet>,
-
-}
-
-#[derive(Args)]
-struct RevokePeer {
-
 
 }
 
