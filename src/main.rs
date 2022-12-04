@@ -1,4 +1,4 @@
-use clap::{Args, Subcommand};
+use clap::{Args, Subcommand, ValueEnum};
 
 pub(crate) mod conf;
 mod handler;
@@ -35,6 +35,7 @@ struct CLI {
     token: Option<String>,
 
     /// Use configuration
+    #[arg(global = true, default_value = "wg0")]
     config: Option<String>,
 
     /// Subcommands
@@ -45,7 +46,7 @@ struct CLI {
 #[derive(Subcommand)]
 pub(crate) enum SubCommands {
     /// Add WireGuard Interface
-    #[command(arg_required_else_help = true, requires = "config")]
+    #[command(arg_required_else_help = true)]
     AddInterface(AddInterface),
 
     /// Add WireGuard Peer
@@ -64,9 +65,9 @@ pub(crate) enum SubCommands {
 #[allow(unused_qualifications)]
 #[derive(Args)]
 struct AddInterface {
-    /// Interface name
-    #[arg(long)]
-    name: String,
+    /// Interface description
+    #[arg(long, short)]
+    description: Option<String>,
 
     /// Interface's WireGuard Peer Endpoint address/domain
     #[arg(long, value_name = "HOST", value_parser = parser::parser_host)]
@@ -105,9 +106,9 @@ struct AddInterface {
 #[allow(unused_qualifications)]
 #[derive(Args)]
 struct AddPeer {
-    /// Peer name
-    #[arg(long)]
-    name: String,
+    /// Peer description
+    #[arg(long, short)]
+    description: Option<String>,
 
     /// Peer AllowedIPs
     #[arg(long, value_parser = parser::parser_address_in_range)]
@@ -127,19 +128,15 @@ struct AddPeer {
 }
 
 #[derive(Args)]
-struct RevokePeer {
-    /// Revoke peer
-    #[arg(long, short, required = true)]
-    name: String,
-}
+struct RevokePeer {}
 
 #[derive(Args)]
 struct Conf {
-    // Lists configuration
-    #[arg(short, long)]
+    /// Lists WireGuard configuration
+    #[arg(long, short)]
     list: bool,
-
-    // Sync configuration
+    /// Sync WireGuard configuration
+    #[arg(long)]
     sync: bool,
 }
 
