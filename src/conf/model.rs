@@ -42,7 +42,7 @@ impl WgConfig {
 pub struct Interface {
     // node mode (client/server)
     is_server: bool,
-    // tag name
+    // description
     description: Option<String>,
     // interface WireGuard address
     address: Option<Vec<ipnet::IpNet>>,
@@ -84,13 +84,12 @@ impl Interface {
         }
         return String::from("empty");
     }
-
 }
 
 impl NodeProperty for Interface {
     fn description(&self) -> String {
         if let Some(ref tag) = self.description {
-            return tag.to_string()
+            return tag.to_string();
         }
         return String::new();
     }
@@ -104,7 +103,7 @@ impl NodeProperty for Interface {
 }
 
 pub struct Peer {
-    // tag name
+    // description
     description: Option<String>,
     // peer's public key
     public_key: Option<String>,
@@ -113,10 +112,8 @@ pub struct Peer {
     // keep alive interval
     persistent_keepalive: Option<u16>,
     // peet endpoint
-    endpoint: Option<Endpoint>
+    endpoint: Option<Endpoint>,
 }
-
-
 
 // peer configuration of wireguard
 impl Peer {
@@ -153,7 +150,7 @@ impl Peer {
     }
 }
 
-impl NodeProperty for Peer{
+impl NodeProperty for Peer {
     fn description(&self) -> String {
         if let Some(ref tag) = self.description {
             return tag.to_string();
