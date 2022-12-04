@@ -13,15 +13,10 @@ pub(crate) fn parser_address(s: &str) -> anyhow::Result<std::net::IpAddr> {
 pub(crate) fn parser_host(s: &str) -> anyhow::Result<String> {
     let address = parser_address(s);
     return match address {
-        Ok(addr) => {
-            Ok(addr.to_string())
-        }
-        Err(e) => {
-            Err(e)
-        }
-    }
+        Ok(addr) => Ok(addr.to_string()),
+        Err(e) => Err(e),
+    };
 }
-
 
 const PORT_RANGE: std::ops::RangeInclusive<usize> = 1024..=65535;
 

@@ -1,6 +1,26 @@
 use clap::ArgMatches;
 use std::io::{Read, Write};
 
+pub(crate) fn subcommand_add_interface_handler(
+    add_interface: &crate::AddInterface,
+) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub(crate) fn subcommand_add_peer_handler(add_peer: &crate::AddPeer) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub(crate) fn subcommand_revoke_peer_handler(
+    revoke_peer: &crate::RevokePeer,
+) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub(crate) fn subcommand_conf_handler(conf: &crate::Conf) -> anyhow::Result<()> {
+    Ok(())
+}
+
 pub(crate) fn command_client_handler(arg: &ArgMatches) -> anyhow::Result<()> {
     if let Some(addr) = arg.get_one::<std::net::IpAddr>("client") {
         let port = *arg.get_one::<u16>("port").unwrap_or(&(0 as u16));
@@ -38,35 +58,5 @@ pub(crate) fn command_server_handler(arg: &ArgMatches) -> anyhow::Result<()> {
             }
         }
     }
-    Ok(())
-}
-
-pub(crate) fn subcommand_add_interface_handler(arg: &ArgMatches) -> anyhow::Result<()> {
-    if let Some(arg) = arg.subcommand_matches("add-interface") {
-        if let Some(name) = arg.get_one::<String>("add-interface_name") {
-            println!("#{}", name)
-        }
-        if let Some(address) = arg.get_one::<Vec<ipnet::IpNet>>("add-interface_address") {
-            let str = address
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>();
-            println!("Address = {}", str.join(","));
-        }
-        if let Some(port) = arg.get_one::<u16>("add-interface_listen-port") {
-            println!("ListenPort = {}", port);
-        }
-        if let Some(mtu) = arg.get_one::<u32>("add-interface_mtu") {
-            println!("MTU = {}", mtu);
-        }
-    }
-    Ok(())
-}
-
-pub(crate) fn subcommand_add_peer_handler(arg: &ArgMatches) -> anyhow::Result<()> {
-    Ok(())
-}
-
-pub(crate) fn subcommand_revoke_peer_handler(arg: &ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }

@@ -19,11 +19,11 @@ struct CLI {
     debug: bool,
 
     /// Run in server mode
-    #[arg(short, long, group = "wgsdc", requires = "port")]
+    #[arg(short, long, group = "wgsdc", requires = "config")]
     server: bool,
 
     /// Run in client mode, connecting to <host>
-    #[arg(short, long, value_parser = parser::parser_address, value_name = "HOST", group = "wgsdc", requires = "port")]
+    #[arg(short, long, value_parser = parser::parser_address, value_name = "HOST", group = "wgsdc", requires = "config")]
     client: Option<std::net::IpAddr>,
 
     /// Bind to a specific client/server port (TCP, temporary port by 1024-65535)
@@ -39,14 +39,13 @@ struct CLI {
 
     /// Subcommands
     #[command(subcommand)]
-    subcommand: Option<SubCommands>,
+    commands: Option<SubCommands>,
 }
 
 #[derive(Subcommand)]
-#[command(next_line_help = false)]
-enum SubCommands {
+pub(crate) enum SubCommands {
     /// Add WireGuard Interface
-    #[command(arg_required_else_help = true)]
+    #[command(arg_required_else_help = true, requires = "config")]
     AddInterface(AddInterface),
 
     /// Add WireGuard Peer
@@ -55,11 +54,7 @@ enum SubCommands {
 
     /// Revoke WireGuard existing peer
     #[command(arg_required_else_help = true)]
-    RevokePeer{
-        /// Revoke peer
-        #[arg(long, short, required = true)]
-        name: String
-    },
+    RevokePeer(RevokePeer),
 
     /// WireGuard Configuration
     #[command(arg_required_else_help = true)]
@@ -105,13 +100,11 @@ struct AddInterface {
     /// Interface's WireGuard PreDown command
     #[arg(long)]
     pre_down: Option<String>,
-
 }
 
 #[allow(unused_qualifications)]
 #[derive(Args)]
 struct AddPeer {
-
     /// Peer name
     #[arg(long)]
     name: String,
@@ -131,7 +124,13 @@ struct AddPeer {
     /// Peer endpoint allowed ips
     #[arg(long, value_name = "ALLOWED_IPS", default_value = DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, value_parser = parser::parser_address_in_range)]
     endpoint_allowed_ips: std::vec::Vec<ipnet::IpNet>,
+}
 
+#[derive(Args)]
+struct RevokePeer {
+    /// Revoke peer
+    #[arg(long, short, required = true)]
+    name: String,
 }
 
 #[derive(Args)]
@@ -149,6 +148,21 @@ fn main() -> anyhow::Result<()> {
     let cli = CLI::parse();
     // enabled debug mode
     init_log(cli.debug);
+    match &cli.commands {
+        Some(SubCommands::AddInterface(add_interface)) => {
+            handler::subcommand_add_interface_handler(add_interface)?
+        }
+
+        Some(SubCommands::AddPeer(add_peer)) => handler::subcommand_add_peer_handler(add_peer)?,
+
+        Some(SubCommands::RevokePeer(revoke_peer)) => {
+            handler::subcommand_revoke_peer_handler(revoke_peer)?
+        }
+
+        Some(SubCommands::Conf(conf)) => handler::subcommand_conf_handler(conf)?,
+
+        None => {}
+    }
     Ok(())
 }
 
