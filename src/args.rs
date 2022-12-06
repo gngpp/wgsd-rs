@@ -8,18 +8,18 @@ use crate::conf::model::IpNet;
 
 #[derive(clap::Parser)]
 #[command(about, version, author, arg_required_else_help = true)]
-#[command(propagate_version = true)]
-pub(crate) struct CLI {
+#[command(args_conflicts_with_subcommands = true)]
+pub(crate) struct Wgsdc {
     /// Enable debug mode
     #[arg(long)]
     pub debug: bool,
 
     /// Run in server mode
-    #[arg(short, long, group = "wgsdc", requires = "config")]
+    #[arg(short, long, group = "wgsdc", requires = "port")]
     pub server: bool,
 
     /// Run in client mode, connecting to <host>
-    #[arg(short, long, value_parser = parser::parser_host, value_name = "HOST", group = "wgsdc", requires = "config")]
+    #[arg(short, long, value_parser = parser::parser_host, value_name = "HOST", group = "wgsdc", requires = "port")]
     pub client: Option<String>,
 
     /// Bind to a specific client/server port (TCP, temporary port by 1024-65535)
@@ -41,9 +41,9 @@ pub(crate) struct CLI {
 
 #[derive(Subcommand)]
 pub(crate) enum SubCommands {
-    /// Add WireGuard Interface
+    /// Add WireGuard Server
     #[command(arg_required_else_help = true)]
-    AddInterface(AddInterface),
+    AddServer(AddServer),
 
     /// Add WireGuard Peer
     #[command(arg_required_else_help = true)]
@@ -63,7 +63,7 @@ pub(crate) enum SubCommands {
 
 #[allow(unused_qualifications)]
 #[derive(Args)]
-pub(crate) struct AddInterface {
+pub(crate) struct AddServer {
     /// Interface description
     #[arg(long, short)]
     pub description: Option<String>,
