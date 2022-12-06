@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use std::path::PathBuf;
+use crate::conf::model::IpNet;
 
 // address parser
 pub(crate) fn parser_address(s: &str) -> anyhow::Result<std::net::IpAddr> {
@@ -14,7 +15,20 @@ pub(crate) fn parser_host(s: &str) -> anyhow::Result<String> {
     let address = parser_address(s);
     return match address {
         Ok(addr) => Ok(addr.to_string()),
-        Err(e) => Err(e),
+        Err(_) => {
+            let vec = s.split('.').map(|x| x.trim()).collect::<Vec<&str>>();
+            // Part of the domain name rules, I don't think anyone will deliberately mistake the domain name, right?
+            if s.is_empty()
+                || s.chars().count() > 253
+                || vec.len() <= 1
+                || s.starts_with('-')
+                || s.ends_with('-')
+                || s.contains('*')
+            {
+                anyhow::bail!("{} does not conform to domain specification!", s)
+            }
+            Ok(String::from(s))
+        }
     };
 }
 
@@ -36,12 +50,12 @@ pub(crate) fn parser_port_in_range(s: &str) -> anyhow::Result<u16> {
 }
 
 // address list range parser
-pub(crate) fn parser_address_in_range(s: &str) -> anyhow::Result<Vec<ipnet::IpNet>> {
-    let vec: Vec<&str> = s.split(",").map(|v| v.trim()).collect();
+pub(crate) fn parser_address_in_range(s: &str) -> anyhow::Result<Vec<IpNet>> {
+    let vec = s.split(",").map(|v| v.trim()).collect::<Vec<&str>>();
     let mut res = Vec::new();
     for value in &vec {
-        let address = value.parse::<ipnet::IpNet>()?;
-        res.push(address)
+        let ip = value.parse::<ipnet::IpNet>()?;
+        res.push(IpNet::new(ip))
     }
     Ok(res)
 }
@@ -53,6 +67,6 @@ pub(crate) fn parser_mtu(s: &str) -> anyhow::Result<u16> {
     Ok(mtu)
 }
 
-pub(crate) fn parser_conf(s: &str) -> anyhow::Result<PathBuf> {
+pub(crate) fn parser_conf(_s: &str) -> anyhow::Result<PathBuf> {
     anyhow::bail!("implement me")
 }

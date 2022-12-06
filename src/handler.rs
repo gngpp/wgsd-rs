@@ -1,23 +1,57 @@
+use crate::conf::model::{Endpoint, Node};
+use crate::conf::Configuration;
+use crate::{args, wg};
+
 use clap::ArgMatches;
 use std::io::{Read, Write};
 
-pub(crate) fn subcommand_add_interface_handler(
-    add_interface: &crate::AddInterface,
+pub(crate) async fn subcommand_add_interface_handler(
+    add_interface: args::AddInterface,
+    _config: String,
+) -> anyhow::Result<()> {
+    let mut node = Node::default();
+    let key_pair = wg::WireGuardCommand::generate_key_pair(false)?;
+    node.set_is_server(true)
+        .set_description(add_interface.description)
+        .set_endpoint(Some(Endpoint::new(
+            add_interface.endpoint,
+            add_interface.listen_port,
+        )))
+        .set_address(Some(add_interface.address))
+        .set_listen_port(Some(add_interface.listen_port))
+        .set_mtu(Some(add_interface.mtu))
+        .set_post_up(add_interface.post_up)
+        .set_post_down(add_interface.post_down)
+        .set_pre_up(add_interface.pre_up)
+        .set_pre_down(add_interface.pre_down)
+        .set_public_key(Some(key_pair.public_key().to_string()))
+        .set_private_key(Some(key_pair.private_key().to_string()));
+    println!("{:#?}", node);
+    Ok(())
+}
+
+pub(crate) async fn subcommand_add_peer_handler(
+    _add_peer: args::AddPeer,
+    _config: String,
 ) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) fn subcommand_add_peer_handler(add_peer: &crate::AddPeer) -> anyhow::Result<()> {
-    Ok(())
-}
-
-pub(crate) fn subcommand_revoke_peer_handler(
-    revoke_peer: &crate::RevokePeer,
+pub(crate) async fn subcommand_revoke_peer_handler(
+    _revoke_peer: args::RevokePeer,
+    _config: String,
 ) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) fn subcommand_conf_handler(conf: &crate::Conf) -> anyhow::Result<()> {
+pub(crate) async fn subcommand_conf_handler(
+    _conf: args::Conf,
+    config: String,
+) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub(crate) async fn subcommand_gen_template_handler() -> anyhow::Result<()> {
     Ok(())
 }
 
