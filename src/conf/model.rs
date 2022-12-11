@@ -12,6 +12,9 @@ pub struct WGSDC {
 }
 
 impl WGSDC {
+    /*
+    set peer server
+     */
     pub fn map_set_peer(&mut self, node: Node) {
         if let Some(ref mut n) = self.peer_server {
             WGSDC::map_set(n, node)
@@ -20,6 +23,9 @@ impl WGSDC {
         }
     }
 
+    /*
+    push peer list
+    */
     pub fn map_push_peer(&mut self, node: Node) {
         let peer_list = self.peer_list.get_or_insert_with(Vec::new);
         if let Some(name) = &node.name {
@@ -38,26 +44,33 @@ impl WGSDC {
 
     // replace if not present
     fn map_set(change: &mut Node, node: Node) {
+        // node name
         change.with_name(node.name);
+        // node endpoint(peer)
         if node.endpoint.is_some() {
             change.with_endpoint(node.endpoint);
         }
-
+        // node address(server)
         if node.address.is_some() {
             change.with_address(node.address);
         }
+        // node listen port(server)
         if node.listen_port.is_some() {
             change.with_listen_port(node.listen_port);
         }
+        // node MTU
         if node.mtu.is_some() {
             change.with_mtu(node.mtu);
         }
+        // node allowed ips
         if node.allowed_ips.is_some() {
             change.with_allowed_ips(node.allowed_ips);
         }
+        // node endpoint allowed ips(peer)
         if node.endpoint_allowed_ips.is_some() {
             change.with_endpoint_allowed_ips(node.endpoint_allowed_ips);
         }
+        // node persistent keepalive
         if node.persistent_keepalive.is_some() {
             change.with_persistent_keepalive(node.persistent_keepalive);
         }
@@ -73,15 +86,19 @@ impl WGSDC {
                 change.with_private_key(node.private_key);
             }
         }
+        // interface PostUp
         if node.post_up.is_some() {
             change.with_post_up(node.post_up);
         }
+        // interface PostDown
         if node.post_down.is_some() {
             change.with_post_down(node.post_down);
         }
+        // interface PreUp
         if node.pre_up.is_some() {
             change.with_pre_up(node.pre_up);
         }
+        // interface PreDown
         if node.pre_down.is_some() {
             change.with_pre_down(node.pre_down);
         }

@@ -10,9 +10,13 @@ pub(crate) async fn subcommand_add_server_handler(
     config: String,
 ) -> anyhow::Result<()> {
     let configuration = Configuration::new(config).await?;
+    // read configuration
     let mut wgsdc = configuration.read().await?;
+    // set peer node
     wgsdc.map_set_peer(Node::from(add_server));
+    // write configuration
     configuration.write(wgsdc).await?;
+    // print configuration to std
     configuration.print_std().await
 }
 
@@ -21,9 +25,13 @@ pub(crate) async fn subcommand_add_peer_handler(
     config: String,
 ) -> anyhow::Result<()> {
     let configuration = Configuration::new(config).await?;
+    // read configuration
     let mut wgsdc = configuration.read().await?;
+    // push peer list
     wgsdc.map_push_peer(Node::from(add_peer));
+    // write configuration
     configuration.write(wgsdc).await?;
+    // print configuration to std
     configuration.print_std().await
 }
 
