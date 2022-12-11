@@ -144,9 +144,9 @@ pub(crate) struct AddPeer {
 
 #[derive(Args)]
 pub(crate) struct RevokePeer {
-    /// Peer's ID
+    /// Peer's name
     #[arg(long, short, group = "revoke")]
-    pub id: String,
+    pub name: Option<String>,
     /// Enter shell mode
     #[arg(long, group = "revoke")]
     pub shell: bool,

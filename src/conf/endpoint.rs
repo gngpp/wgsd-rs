@@ -4,18 +4,21 @@ use serde::{Deserialize, Serialize};
 // interface configuration of wireguard
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Interface {
-    // interface WireGuard address
+    // interface's WireGuard address
     address: Option<Vec<IpNet>>,
-    // interface private key
+    // interface's private key
     private_key: Option<String>,
-    // interface listen port
+    // interface's listen port
     listen_port: Option<u16>,
-    // interface MTU
+    // interface's MTU
     mtu: Option<u16>,
-
+    // interface's PreUP
     pre_up: Option<String>,
+    // interface's PostUp
     post_up: Option<String>,
+    // interface's PreDown
     pre_down: Option<String>,
+    // interface's PostDown
     post_down: Option<String>,
 }
 

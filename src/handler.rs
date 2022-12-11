@@ -1,9 +1,10 @@
-use crate::args;
 use crate::conf::model::Node;
 
+use crate::args;
 use crate::conf::Configuration;
 use clap::ArgMatches;
 use std::io::{Read, Write};
+use std::num::ParseIntError;
 
 pub(crate) async fn subcommand_add_server_handler(
     add_server: args::AddServer,
@@ -13,7 +14,7 @@ pub(crate) async fn subcommand_add_server_handler(
     // read configuration
     let mut wgsdc = configuration.read().await?;
     // set peer node
-    wgsdc.map_set_peer(Node::from(add_server));
+    wgsdc.node_server(Node::from(add_server));
     // write configuration
     configuration.write(wgsdc).await?;
     // print configuration to std
@@ -28,7 +29,7 @@ pub(crate) async fn subcommand_add_peer_handler(
     // read configuration
     let mut wgsdc = configuration.read().await?;
     // push peer list
-    wgsdc.map_push_peer(Node::from(add_peer));
+    wgsdc.push_node(Node::from(add_peer));
     // write configuration
     configuration.write(wgsdc).await?;
     // print configuration to std
@@ -36,10 +37,75 @@ pub(crate) async fn subcommand_add_peer_handler(
 }
 
 pub(crate) async fn subcommand_revoke_peer_handler(
-    _revoke_peer: args::RevokePeer,
-    _config: String,
+    revoke_peer: args::RevokePeer,
+    config: String,
 ) -> anyhow::Result<()> {
-    Ok(())
+    match revoke_peer {
+        args::RevokePeer { shell, name } => {
+            let configuration = Configuration::new(config).await?;
+            // read configuration
+            let mut wgsdc = configuration.read().await?;
+            let node_list = wgsdc.get_node_list();
+            let mut modify = false;
+            if shell {
+                let format_print = |x: usize| {
+                    if x % 2 == 0 {
+                        "/"
+                    } else {
+                        "\\"
+                    }
+                };
+                println!("You can enter a serial number or a name, or enters the 'exit' command");
+                node_list
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| format!("{} {} {}", i, format_print(i), v.name()))
+                    .for_each(|v| println!("{}", v));
+
+                // Loops until the user enters the "exit" command
+                loop {
+                    print!("revoke> ");
+                    std::io::stdout().flush()?;
+
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).unwrap();
+
+                    let input = input.trim();
+
+                    // Perform actions based on user input
+                    match input.parse::<usize>() {
+                        Ok(index) => {
+                            if index > node_list.len() - 1 {
+                                println!("Unknown command: {}", input);
+                            } else {
+                                node_list.remove(index);
+                                modify = true;
+                                break;
+                            }
+                        }
+                        Err(_) => {
+                            match input {
+                                "exit" => {
+                                    // exit shell
+                                    break;
+                                }
+                                _ => {
+                                    println!("Unknown command: {}", input);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(name) = name {
+                wgsdc.remove_node(name)
+            }
+
+            configuration.write(wgsdc).await?;
+            return configuration.print_std().await;
+        }
+    }
 }
 
 pub(crate) async fn subcommand_conf_handler(

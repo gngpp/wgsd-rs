@@ -6,40 +6,53 @@ use serde_yaml::from_str;
 use std::ops::Deref;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct WGSDC {
-    peer_server: Option<Node>,
-    peer_list: Option<Vec<Node>>,
+pub struct WireGuardConfig {
+    node_server: Option<Node>,
+    node_list: Option<Vec<Node>>,
 }
 
-impl WGSDC {
+impl WireGuardConfig {
     /*
-    set peer server
+    set node server
      */
-    pub fn map_set_peer(&mut self, node: Node) {
-        if let Some(ref mut n) = self.peer_server {
-            WGSDC::map_set(n, node)
+    pub fn node_server(&mut self, node: Node) {
+        if let Some(ref mut n) = self.node_server {
+            WireGuardConfig::map_set(n, node)
         } else {
-            self.peer_server = Some(node)
+            self.node_server = Some(node)
         }
     }
 
     /*
-    push peer list
+    push node to list
     */
-    pub fn map_push_peer(&mut self, node: Node) {
-        let peer_list = self.peer_list.get_or_insert_with(Vec::new);
+    pub fn push_node(&mut self, node: Node) {
+        let peer_list = self.node_list.get_or_insert_with(Vec::new);
         if let Some(name) = &node.name {
-            if let Some(index) = peer_list.iter().position(|n| {
-                if let Some(t_name) = &n.name {
-                    return t_name.eq(name);
-                }
-                false
-            }) {
-                WGSDC::map_set(&mut peer_list[index], node);
+            if let Some(index) = peer_list.iter().position(|n| n.name().eq(name)) {
+                WireGuardConfig::map_set(&mut peer_list[index], node);
             } else {
                 peer_list.push(node);
             }
         }
+    }
+
+    /*
+    remove from node list
+     */
+    pub fn remove_node(&mut self, node_name: String) {
+        if let Some(peer_list) = self.node_list.as_mut() {
+            if let Some(index) = peer_list.iter().position(|n| n.name().eq(&node_name)) {
+                peer_list.remove(index);
+            }
+        }
+    }
+
+    /*
+    get from node list
+     */
+    pub fn get_node_list(&mut self) -> &mut Vec<Node> {
+        self.node_list.get_or_insert_with(Vec::new)
     }
 
     // replace if not present
@@ -227,6 +240,9 @@ impl Node {
     pub fn with_post_down(&mut self, post_down: Option<String>) -> &mut Node {
         self.post_down = post_down;
         self
+    }
+    pub fn name(&self) -> &str {
+        self.name.as_deref().unwrap_or_default()
     }
 }
 
