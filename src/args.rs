@@ -1,17 +1,17 @@
+use crate::conf::endpoint::IpNet;
 use crate::parser;
 use crate::{
     DEFAULT_INTERFACE_ADDRESS, DEFAULT_INTERFACE_LISTEN_PORT, DEFAULT_MTU,
     DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, DEFAULT_PEER_PERSISTENT_KEEPALIVE,
 };
 use clap::{Args, Subcommand};
-use crate::conf::model::IpNet;
 
 #[derive(clap::Parser)]
 #[command(about, version, author, arg_required_else_help = true)]
 #[command(args_conflicts_with_subcommands = true)]
 pub(crate) struct Wgsdc {
     /// Enable debug mode
-    #[arg(long)]
+    #[arg(global = true, long)]
     pub debug: bool,
 
     /// Run in server mode
@@ -64,9 +64,9 @@ pub(crate) enum SubCommands {
 #[allow(unused_qualifications)]
 #[derive(Args)]
 pub(crate) struct AddServer {
-    /// Interface description
+    /// Interface's name
     #[arg(long, short)]
-    pub description: Option<String>,
+    pub name: String,
 
     /// Interface's WireGuard Peer Endpoint address/domain
     #[arg(long, value_name = "HOST", value_parser = parser::parser_host)]
@@ -105,36 +105,51 @@ pub(crate) struct AddServer {
 #[allow(unused_qualifications)]
 #[derive(Args)]
 pub(crate) struct AddPeer {
-    /// Peer description
-    #[arg(long, short)]
-    pub description: Option<String>,
-
-    /// Peer name
+    /// Peer's name
     #[arg(long, short)]
     pub name: String,
 
-    /// Peer AllowedIPs
+    /// Peer's AllowedIPs
     #[arg(long, value_parser = parser::parser_address_in_range)]
     pub allowed_ips: std::vec::Vec<IpNet>,
 
-    /// Peer MTU
+    /// Peer's MTU
     #[arg(long, default_value = DEFAULT_MTU)]
     pub mtu: u16,
 
-    /// Peer persistent keepalive
+    /// Peer's persistent keepalive
     #[arg(long, default_value = DEFAULT_PEER_PERSISTENT_KEEPALIVE)]
     pub persistent_keepalive: u16,
 
-    /// Peer endpoint allowed ips
+    /// Peer's endpoint allowed ips
     #[arg(long, value_name = "ALLOWED_IPS", default_value = DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, value_parser = parser::parser_address_in_range)]
     pub endpoint_allowed_ips: std::vec::Vec<IpNet>,
+
+    /// Peer's WireGuard PostUp command
+    #[arg(long)]
+    pub post_up: Option<String>,
+
+    /// Peer's WireGuard PostDown command
+    #[arg(long)]
+    pub post_down: Option<String>,
+
+    /// Peer's WireGuard PreUp command
+    #[arg(long)]
+    pub pre_up: Option<String>,
+
+    /// Peer's WireGuard PreDown command
+    #[arg(long)]
+    pub pre_down: Option<String>,
 }
 
 #[derive(Args)]
 pub(crate) struct RevokePeer {
-    /// Peer name
-    #[arg(long, short)]
-    pub name: String,
+    /// Peer's ID
+    #[arg(long, short, group = "revoke")]
+    pub id: String,
+    /// Enter shell mode
+    #[arg(long, group = "revoke")]
+    pub shell: bool,
 }
 
 #[derive(Args)]

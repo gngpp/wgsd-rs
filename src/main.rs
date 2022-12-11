@@ -2,7 +2,7 @@ use crate::args::SubCommands;
 use anyhow::anyhow;
 
 mod args;
-pub(crate) mod conf;
+pub mod conf;
 mod handler;
 pub mod parser;
 pub mod wg;
@@ -16,23 +16,25 @@ pub const DEFAULT_PEER_ENDPOINT_ALLOWED_IPS: &str = "10.66.66.0/24";
 #[tokio::main]
 async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
     use clap::Parser;
-    let cli = args::CLI::parse();
+    let wgsdc = args::Wgsdc::parse();
     // enabled debug mode
-    init_log(cli.debug);
-    match cli.commands {
-        Some(SubCommands::AddInterface(add_interface)) => {
-            handler::subcommand_add_interface_handler(add_interface, cli.config).await?
+    init_log(wgsdc.debug);
+    match wgsdc.commands {
+        Some(SubCommands::AddServer(add_interface)) => {
+            handler::subcommand_add_server_handler(add_interface, wgsdc.config).await?
         }
 
         Some(SubCommands::AddPeer(add_peer)) => {
-            handler::subcommand_add_peer_handler(add_peer, cli.config).await?
+            handler::subcommand_add_peer_handler(add_peer, wgsdc.config).await?
         }
 
         Some(SubCommands::RevokePeer(revoke_peer)) => {
-            handler::subcommand_revoke_peer_handler(revoke_peer, cli.config).await?
+            handler::subcommand_revoke_peer_handler(revoke_peer, wgsdc.config).await?
         }
 
-        Some(SubCommands::Conf(conf)) => handler::subcommand_conf_handler(conf, cli.config).await?,
+        Some(SubCommands::Conf(conf)) => {
+            handler::subcommand_conf_handler(conf, wgsdc.config).await?
+        }
 
         Some(SubCommands::GenTemplate) => handler::subcommand_gen_template_handler().await?,
 
@@ -42,11 +44,8 @@ async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
 }
 
 fn init_log(debug: bool) {
-    if debug {
-        std::env::set_var("RUST_LOG", "DEBUG");
-    } else {
-        std::env::set_var("RUST_LOG", "INFO");
-    }
+    let log_level = if debug { "DEBUG" } else { "INFO" };
+    std::env::set_var("RUST_LOG", log_level);
     use std::io::Write;
     env_logger::builder()
         .format(|buf, record| {
