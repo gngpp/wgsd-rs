@@ -42,70 +42,83 @@ pub(crate) async fn subcommand_revoke_peer_handler(
 ) -> anyhow::Result<()> {
     match revoke_peer {
         args::RevokePeer { shell, name } => {
-            let configuration = Configuration::new(config).await?;
-            // read configuration
-            let mut wgsdc = configuration.read().await?;
-            let node_list = wgsdc.get_node_list();
-            let mut modify = false;
-            if shell {
-                let format_print = |x: usize| {
-                    if x % 2 == 0 {
-                        "/"
+            subcommand_revoke_peer_handler_inner(shell, name, config).await
+        }
+    }
+}
+
+async fn subcommand_revoke_peer_handler_inner(
+    shell: bool,
+    name: Option<String>,
+    config: String,
+) -> anyhow::Result<()> {
+    let configuration = Configuration::new(config).await?;
+    // read configuration
+    let mut wgsdc = configuration.read().await?;
+    let node_list = wgsdc.get_node_list();
+    let mut modify = false;
+    if shell {
+        let format_print = |x: usize| {
+            if x % 2 == 0 {
+                "/"
+            } else {
+                "\\"
+            }
+        };
+        println!("You can enter a serial number, or enters the 'exit' command");
+        node_list
+            .iter()
+            .enumerate()
+            .map(|(i, v)| format!("{} {} {}", i, format_print(i), v.name()))
+            .for_each(|v| println!("{}", v));
+
+        // Loops until the user enters the "exit" command
+        loop {
+            print!("revoke> ");
+            std::io::stdout().flush()?;
+
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+
+            let input = input.trim();
+
+            // Perform actions based on user input
+            match input.parse::<usize>() {
+                Ok(index) => {
+                    if index > node_list.len() - 1 {
+                        println!("Unknown command: {}", input);
                     } else {
-                        "\\"
+                        node_list.remove(index);
+                        modify = true;
+                        break;
                     }
-                };
-                println!("You can enter a serial number or a name, or enters the 'exit' command");
-                node_list
-                    .iter()
-                    .enumerate()
-                    .map(|(i, v)| format!("{} {} {}", i, format_print(i), v.name()))
-                    .for_each(|v| println!("{}", v));
-
-                // Loops until the user enters the "exit" command
-                loop {
-                    print!("revoke> ");
-                    std::io::stdout().flush()?;
-
-                    let mut input = String::new();
-                    std::io::stdin().read_line(&mut input).unwrap();
-
-                    let input = input.trim();
-
-                    // Perform actions based on user input
-                    match input.parse::<usize>() {
-                        Ok(index) => {
-                            if index > node_list.len() - 1 {
-                                println!("Unknown command: {}", input);
-                            } else {
-                                node_list.remove(index);
-                                modify = true;
-                                break;
-                            }
+                }
+                Err(_) => {
+                    match input {
+                        "exit" => {
+                            // exit shell
+                            break;
                         }
-                        Err(_) => {
-                            match input {
-                                "exit" => {
-                                    // exit shell
-                                    break;
-                                }
-                                _ => {
-                                    println!("Unknown command: {}", input);
-                                }
-                            }
+                        _ => {
+                            println!("Unknown command: {}", input);
                         }
                     }
                 }
             }
-
-            if let Some(name) = name {
-                wgsdc.remove_node(name)
-            }
-
-            configuration.write(wgsdc).await?;
-            return configuration.print_std().await;
         }
     }
+
+    if let Some(name) = name {
+        wgsdc.remove_node(name);
+        modify = true;
+    }
+
+    if modify {
+        configuration.write(wgsdc).await?;
+        configuration.print_std().await?;
+    }
+
+    Ok(())
 }
 
 pub(crate) async fn subcommand_conf_handler(

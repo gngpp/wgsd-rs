@@ -48,6 +48,17 @@ impl WireGuardConfig {
         }
     }
 
+    pub fn exist(&mut self, name: String) -> bool {
+        if let Some(peer_list) = self.node_list.as_ref() {
+            return peer_list
+                .iter()
+                .map(|x| x.name())
+                .collect::<Vec<&str>>()
+                .contains(&name.as_str());
+        }
+        false
+    }
+
     /*
     get from node list
      */
