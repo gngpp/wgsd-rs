@@ -129,7 +129,7 @@ pub(crate) async fn subcommand_config_handler(
     match _conf {
         Config { cat, sync: _ } => {
             if cat {
-                println!("{}", wg.interface_str().unwrap_or_default());
+                println!("{}", wg.server_configuration_str().unwrap_or_default());
             }
         }
     }

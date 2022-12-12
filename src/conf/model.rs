@@ -118,8 +118,8 @@ impl WireGuard {
         }
     }
 
-    pub fn interface_str(self) -> Option<String> {
-        if let Some(node_server) = self.node_server {
+    pub fn server_configuration_str(&self) -> Option<String> {
+        if let Some(node_server) = &self.node_server {
             let mut lines: Vec<String> = Vec::new();
             // node name
             lines.push(format!("# {}", node_server.name()));
@@ -190,29 +190,5 @@ impl WireGuard {
         None
     }
 
-    // pub fn get_config(&self) -> Vec<String> {
-    //     let mut lines: Vec<String> = Vec::new();
-    //     lines.push(String::from("[Interface]"));
-    //     lines.push(format!("Address = {}", self.server_peer_node.get_address()));
-    //     lines.push(format!("PrivateKey = {}", self.server_peer_node.get_private_key()));
-    //     lines.push(format!("ListenPort = {}", self.server_peer_node.get_listen_port()));
-    //     lines.push(format!("MTU = {}\n", self.server_peer_node.get_mtu()));
-    //     lines.push(format!(
-    //         "Description = {}",
-    //         self.server_peer_node.get_description()
-    //     ));
-    //
-    //     for peer in self.peer_node_list.iter() {
-    //         lines.push(String::from("[Peer]"));
-    //         lines.push(format!("PublicKey = {}", peer.get_public_key()));
-    //         lines.push(format!("AllowedIPs = {}", peer.get_allowed_ips()));
-    //         lines.push(format!("Endpoint = {}", peer.get_endpoint()));
-    //         lines.push(format!(
-    //             "PersistentKeepalive = {}\n",
-    //             peer.get_persistent_keepalive()
-    //         ));
-    //         lines.push(format!("Description = {}", peer.get_description()))
-    //     }
-    //     lines
-    // }
+
 }
