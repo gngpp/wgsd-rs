@@ -1,5 +1,4 @@
-use crate::conf::endpoint::{Endpoint, Interface, Node, Peer};
-use std::ops::Deref;
+use crate::conf::endpoint::{Interface, Node, Peer};
 
 use serde::{Deserialize, Serialize};
 
@@ -20,7 +19,7 @@ impl WireGuard {
     }
 
     // push node to list
-    pub fn push(&mut self, mut node: Node) {
+    pub fn push(&mut self, node: Node) {
         let peer_list = self.node_list.get_or_insert_with(Vec::new);
         if let Some(name) = &node.name {
             if let Some(index) = peer_list.iter().position(|n| n.name().eq(name)) {

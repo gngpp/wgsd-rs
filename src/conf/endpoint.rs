@@ -25,30 +25,31 @@ pub struct Interface {
 
 impl Interface {
     pub fn address(&self) -> String {
-        if let Some(ref address_list) = self.address {
-            return address_list
-                .iter()
-                .map(|v| v.to_string())
-                .collect::<Vec<String>>()
-                .join(",");
-        }
-        String::new()
+        self.address
+            .as_deref()
+            .expect("address is undefined")
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 
     pub fn private_key(&self) -> &str {
-        self.private_key.as_deref().unwrap_or_default()
+        self.private_key
+            .as_deref()
+            .expect("private key is undefined")
     }
 
-    pub fn listen_port(&self) -> &str {
-        self.post_down.as_deref().unwrap_or_default()
+    pub fn listen_port(&self) -> u16 {
+        self.listen_port.expect("listen port is undefined")
     }
 
-    pub fn mtu(&self) -> Option<u16> {
-        self.mtu.clone()
+    pub fn mtu(&self) -> Option<&u16> {
+        self.mtu.as_ref()
     }
 
     pub fn post_up(&self) -> Option<&str> {
-        self.post_down.as_deref()
+        self.post_up.as_deref()
     }
 
     pub fn post_down(&self) -> Option<&str> {
@@ -56,14 +57,11 @@ impl Interface {
     }
 
     pub fn pre_up(&self) -> Option<&str> {
-        self.post_down.as_deref()
+        self.pre_up.as_deref()
     }
 
-    pub fn pre_down(&self) -> Option<String> {
-        if let Some(ref pre_down) = self.pre_down {
-            return Some(pre_down.to_string());
-        }
-        None
+    pub fn pre_down(&self) -> Option<&str> {
+        self.pre_down.as_deref()
     }
 
     pub fn with_address(&mut self, address: Option<Vec<IpNet>>) -> &mut Interface {
@@ -117,36 +115,32 @@ pub struct Peer {
 // peer configuration of wireguard
 impl Peer {
     pub fn allowed_ips(&self) -> String {
-        if let Some(ref allowed_ips) = self.allowed_ips {
-            return allowed_ips
-                .iter()
-                .map(|v| v.to_string())
-                .collect::<Vec<String>>()
-                .join(", ");
-        }
-        return String::new();
+        self.allowed_ips
+            .as_deref()
+            .expect("allowed_ips is undefined")
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 
-    pub fn public_key(&self) -> String {
-        if let Some(ref public_key) = self.public_key {
-            return public_key.to_string();
+    pub fn public_key(&self) -> &str {
+        self.public_key.as_deref().expect("public key is undefined")
+    }
+
+    pub fn endpoint(&self) -> Option<String> {
+        if let Some(ref endpoint) = self.endpoint {
+            return Some(endpoint.to_string());
         }
-        return String::new();
+        None
     }
 
     pub fn persistent_keepalive(&self) -> Option<&u16> {
         self.persistent_keepalive.as_ref()
     }
 
-    pub fn endpoint(&self) -> String {
-        if let Some(ref endpoint) = self.endpoint {
-            return endpoint.to_string();
-        }
-        return String::new();
-    }
-
-    pub fn mtu(&self) -> u16 {
-        self.mtu.unwrap_or_default()
+    pub fn mtu(&self) -> Option<&u16> {
+        self.mtu.as_ref()
     }
 
     pub fn with_public_key(&mut self, public_key: Option<String>) -> &mut Peer {
@@ -174,8 +168,8 @@ impl Peer {
 // peer endpoint configuration of wireguard
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Endpoint {
-    pub address: String,
-    pub port: u16,
+    address: String,
+    port: u16,
 }
 
 impl Endpoint {
@@ -195,7 +189,7 @@ impl ToString for Endpoint {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct IpNet {
-    pub value: String,
+    value: String,
 }
 
 impl From<ipnet::IpNet> for IpNet {
@@ -310,7 +304,7 @@ impl Node {
         self
     }
     pub fn name(&self) -> &str {
-        self.name.as_deref().unwrap_or_default()
+        self.name.as_deref().expect("peer is not named")
     }
 }
 
