@@ -1,6 +1,6 @@
 extern crate ipnet;
 
-use crate::conf::model::WireGuardConfig;
+use crate::conf::model::WireGuard;
 use anyhow::{anyhow, Context};
 use std::path::PathBuf;
 
@@ -47,7 +47,7 @@ impl Configuration {
         Ok(())
     }
 
-    pub async fn read(&self) -> anyhow::Result<WireGuardConfig> {
+    pub async fn read(&self) -> anyhow::Result<WireGuard> {
         log::debug!("ready to read configuration file: {}", self.path.display());
         let string = tokio::fs::read_to_string(&self.path)
             .await
@@ -55,7 +55,7 @@ impl Configuration {
         serde_yaml::from_str(string.as_str()).context("Serialized read configuration failed")
     }
 
-    pub async fn write(&self, wg: WireGuardConfig) -> anyhow::Result<()> {
+    pub async fn write(&self, wg: WireGuard) -> anyhow::Result<()> {
         log::debug!(
             "ready to write configuration files to: {}",
             self.path.display()

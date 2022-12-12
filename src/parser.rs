@@ -1,6 +1,5 @@
 use crate::conf::endpoint::IpNet;
 use anyhow::anyhow;
-use std::path::PathBuf;
 
 // address parser
 pub(crate) fn parser_address(s: &str) -> anyhow::Result<std::net::IpAddr> {
@@ -65,8 +64,4 @@ pub(crate) fn parser_mtu(s: &str) -> anyhow::Result<u16> {
         .parse::<u16>()
         .map_err(|_| anyhow!(format!("`{}` isn't a mtu number", s)))?;
     Ok(mtu)
-}
-
-pub(crate) fn parser_conf(_s: &str) -> anyhow::Result<PathBuf> {
-    anyhow::bail!("implement me")
 }

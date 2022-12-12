@@ -53,12 +53,9 @@ pub(crate) enum SubCommands {
     #[command(arg_required_else_help = true)]
     RevokePeer(RevokePeer),
 
-    /// Generate a WireGuard configuration template
-    GenTemplate,
-
     /// WireGuard Configuration
     #[command(arg_required_else_help = true)]
-    Conf(Conf),
+    Config(Config),
 }
 
 #[allow(unused_qualifications)]
@@ -74,7 +71,7 @@ pub(crate) struct AddServer {
 
     /// Interface's WireGuard address
     // issue https://github.com/clap-rs/clap/issues/4481#issuecomment-1314475143
-    #[arg(long, default_value = DEFAULT_INTERFACE_ADDRESS, value_parser = parser::parser_address_in_range)]
+    #[arg(long, short, default_value = DEFAULT_INTERFACE_ADDRESS, value_parser = parser::parser_address_in_range)]
     pub address: std::vec::Vec<IpNet>,
 
     /// Interface's WireGuard listen port
@@ -108,6 +105,10 @@ pub(crate) struct AddPeer {
     /// Peer's name
     #[arg(long, short)]
     pub name: String,
+
+    /// Peer's WireGuard address
+    #[arg(long, short, value_parser = parser::parser_address_in_range)]
+    pub address: std::vec::Vec<IpNet>,
 
     /// Peer's AllowedIPs
     #[arg(long, value_parser = parser::parser_address_in_range)]
@@ -153,7 +154,7 @@ pub(crate) struct RevokePeer {
 }
 
 #[derive(Args)]
-pub(crate) struct Conf {
+pub(crate) struct Config {
     /// Print WireGuard configuration
     #[arg(long)]
     pub cat: bool,

@@ -1,10 +1,9 @@
-use crate::conf::model::Node;
-
 use crate::args;
+use crate::args::Config;
+use crate::conf::endpoint::Node;
 use crate::conf::Configuration;
 use clap::ArgMatches;
 use std::io::{Read, Write};
-use std::num::ParseIntError;
 
 pub(crate) async fn subcommand_add_server_handler(
     add_server: args::AddServer,
@@ -14,7 +13,7 @@ pub(crate) async fn subcommand_add_server_handler(
     // read configuration
     let mut wgsdc = configuration.read().await?;
     // set peer node
-    wgsdc.node_server(Node::from(add_server));
+    wgsdc.set(Node::from(add_server));
     // write configuration
     configuration.write(wgsdc).await?;
     // print configuration to std
@@ -27,11 +26,11 @@ pub(crate) async fn subcommand_add_peer_handler(
 ) -> anyhow::Result<()> {
     let configuration = Configuration::new(config).await?;
     // read configuration
-    let mut wgsdc = configuration.read().await?;
+    let mut wg = configuration.read().await?;
     // push peer list
-    wgsdc.push_node(Node::from(add_peer));
+    wg.push(Node::from(add_peer));
     // write configuration
-    configuration.write(wgsdc).await?;
+    configuration.write(wg).await?;
     // print configuration to std
     configuration.print_std().await
 }
@@ -54,8 +53,8 @@ async fn subcommand_revoke_peer_handler_inner(
 ) -> anyhow::Result<()> {
     let configuration = Configuration::new(config).await?;
     // read configuration
-    let mut wgsdc = configuration.read().await?;
-    let node_list = wgsdc.get_node_list();
+    let mut wg = configuration.read().await?;
+    let node_list = wg.list();
     let mut modify = false;
     if shell {
         let format_print = |x: usize| {
@@ -109,26 +108,31 @@ async fn subcommand_revoke_peer_handler_inner(
     }
 
     if let Some(name) = name {
-        wgsdc.remove_node(name);
+        wg.remove(name);
         modify = true;
     }
 
     if modify {
-        configuration.write(wgsdc).await?;
+        configuration.write(wg).await?;
         configuration.print_std().await?;
     }
 
     Ok(())
 }
 
-pub(crate) async fn subcommand_conf_handler(
-    _conf: args::Conf,
-    _config: String,
+pub(crate) async fn subcommand_config_handler(
+    _conf: args::Config,
+    config: String,
 ) -> anyhow::Result<()> {
-    Ok(())
-}
-
-pub(crate) async fn subcommand_gen_template_handler() -> anyhow::Result<()> {
+    let configuration = Configuration::new(config).await?;
+    let wg = configuration.read().await?;
+    match _conf {
+        Config { cat, sync: _ } => {
+            if cat {
+                println!("{}", wg.interface_str().unwrap_or_default());
+            }
+        }
+    }
     Ok(())
 }
 

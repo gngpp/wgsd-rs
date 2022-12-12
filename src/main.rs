@@ -32,11 +32,9 @@ async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
             handler::subcommand_revoke_peer_handler(revoke_peer, wgsdc.config).await?
         }
 
-        Some(SubCommands::Conf(conf)) => {
-            handler::subcommand_conf_handler(conf, wgsdc.config).await?
+        Some(SubCommands::Config(conf)) => {
+            handler::subcommand_config_handler(conf, wgsdc.config).await?
         }
-
-        Some(SubCommands::GenTemplate) => handler::subcommand_gen_template_handler().await?,
 
         None => {}
     }
