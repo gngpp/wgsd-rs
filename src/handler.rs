@@ -13,7 +13,7 @@ pub(crate) async fn subcommand_add_server_handler(
     // read configuration
     let mut wgsdc = configuration.read().await?;
     // set peer node
-    wgsdc.set(Node::from(add_server));
+    wgsdc.set(Node::from(add_server))?;
     // write configuration
     configuration.write(wgsdc).await?;
     // print configuration to std
@@ -28,7 +28,7 @@ pub(crate) async fn subcommand_add_peer_handler(
     // read configuration
     let mut wg = configuration.read().await?;
     // push peer list
-    wg.push(Node::from(add_peer));
+    wg.push(Node::from(add_peer))?;
     // write configuration
     configuration.write(wg).await?;
     // print configuration to std
@@ -54,7 +54,7 @@ async fn subcommand_revoke_peer_handler_inner(
     let configuration = Configuration::new(config).await?;
     // read configuration
     let mut wg = configuration.read().await?;
-    let node_list = wg.list();
+    let node_list = wg.list()?;
     let mut modify = false;
     if shell {
         let format_print = |x: usize| {
@@ -108,7 +108,7 @@ async fn subcommand_revoke_peer_handler_inner(
     }
 
     if let Some(name) = name {
-        wg.remove(name);
+        wg.remove(name)?;
         modify = true;
     }
 

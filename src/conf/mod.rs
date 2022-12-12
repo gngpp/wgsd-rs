@@ -51,7 +51,10 @@ impl Configuration {
         log::debug!("ready to read configuration file: {}", self.path.display());
         let string = tokio::fs::read_to_string(&self.path)
             .await
-            .context("Read configuration error!")?;
+            .context(format!(
+                "Error reading {} configuration file",
+                self.path.display()
+            ))?;
         serde_yaml::from_str(string.as_str()).context("Serialized read configuration failed")
     }
 
@@ -61,7 +64,10 @@ impl Configuration {
             self.path.display()
         );
         let str = serde_yaml::to_string(&wg).context("Serialized write configuration failed")?;
-        tokio::fs::write(&self.path, str).await?;
+        tokio::fs::write(&self.path, str).await.context(format!(
+            "Error writing to {} config file",
+            self.path.display()
+        ))?;
         Ok(())
     }
 

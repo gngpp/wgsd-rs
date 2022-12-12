@@ -1,3 +1,5 @@
+use std::ops::Not;
+
 use crate::conf::endpoint::{Interface, Node, Peer};
 
 use serde::{Deserialize, Serialize};
@@ -10,16 +12,20 @@ pub struct WireGuard {
 
 impl WireGuard {
     // set node server
-    pub fn set(&mut self, node: Node) {
+    pub fn set(&mut self, node: Node) -> anyhow::Result<()> {
         if let Some(ref mut n) = self.node_server {
             WireGuard::map_set(n, node)
         } else {
             self.node_server = Some(node)
         }
+        Ok(())
     }
 
     // push node to list
-    pub fn push(&mut self, node: Node) {
+    pub fn push(&mut self, node: Node) -> anyhow::Result<()> {
+        if self.node_server.is_none() {
+            anyhow::bail!("Please add Server Peer Node first");
+        }
         let peer_list = self.node_list.get_or_insert_with(Vec::new);
         if let Some(name) = &node.name {
             if let Some(index) = peer_list.iter().position(|n| n.name().eq(name)) {
@@ -28,20 +34,22 @@ impl WireGuard {
                 peer_list.push(node)
             }
         }
+        Ok(())
     }
 
     // remove from node list
-    pub fn remove(&mut self, node_name: String) {
+    pub fn remove(&mut self, node_name: String) -> anyhow::Result<()> {
         if let Some(peer_list) = self.node_list.as_mut() {
             if let Some(index) = peer_list.iter().position(|n| n.name().eq(&node_name)) {
                 peer_list.remove(index);
             }
         }
+        Ok(())
     }
 
     // get from node list
-    pub fn list(&mut self) -> &mut Vec<Node> {
-        self.node_list.get_or_insert_with(Vec::new)
+    pub fn list(&mut self) -> anyhow::Result<&mut Vec<Node>> {
+        Ok(self.node_list.get_or_insert_with(Vec::new))
     }
 
     // exist peer
@@ -118,8 +126,8 @@ impl WireGuard {
         }
     }
 
-    pub fn server_configuration_str(&self) -> Option<String> {
-        if let Some(node_server) = &self.node_server {
+    pub fn server_configuration_str(self) -> Option<String> {
+        if let Some(node_server) = self.node_server {
             let mut lines: Vec<String> = Vec::new();
             // node name
             lines.push(format!("# {}", node_server.name()));
@@ -190,5 +198,12 @@ impl WireGuard {
         None
     }
 
-
+    pub fn to_peer_configuration_str(self) -> Option<String> {
+        if let Some(node_list) = self.node_list {
+            if node_list.is_empty().not() {
+                println!("{:?}", node_list);
+            }
+        }
+        None
+    }
 }
