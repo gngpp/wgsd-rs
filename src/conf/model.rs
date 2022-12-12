@@ -126,80 +126,80 @@ impl WireGuard {
         }
     }
 
-    pub fn to_server_configuration_str(self) -> Option<String> {
-        if let Some(node_server) = self.node_server {
-            let mut lines: Vec<String> = Vec::new();
+    pub fn to_server_configuration_str(&self) -> anyhow::Result<Option<String>> {
+        if let Some(node_server) = self.node_server.clone() {
+            let mut lines = String::new();
             // node name
-            lines.push(format!("# {}", node_server.name()));
+            lines.push_str(&format!("# {}\n", node_server.name()));
 
-            let interface: Interface = node_server.into();
+            let interface = Interface::from(node_server);
 
             // Interface section begins
-            lines.push("[Interface]".to_string());
+            lines.push_str("[Interface]\n");
 
             // Interface Private key
-            lines.push(format!("PrivateKey = {}", interface.private_key()));
+            lines.push_str(&format!("PrivateKey = {}\n", interface.private_key()?));
 
             // Interface address
-            lines.push(format!("Address = {}", interface.address()));
+            lines.push_str(&format!("Address = {}\n", interface.address()?));
 
             // Interface listen port
-            lines.push(format!("ListenPort = {}", interface.listen_port()));
+            lines.push_str(&format!("ListenPort = {}\n", interface.listen_port()?));
 
             // MTU, if any
             if let Some(mtu) = interface.mtu() {
-                lines.push(format!("MTU = {}", mtu));
+                lines.push_str(&format!("MTU = {}\n", mtu));
             }
 
             // PreUp, if any
             if let Some(pre_up) = interface.pre_up() {
-                lines.push(format!("PreUp = {}", pre_up));
+                lines.push_str(&format!("PreUp = {}\n", pre_up));
             }
 
             // PostUp, if any
             if let Some(post_up) = interface.post_up() {
-                lines.push(format!("PostUp = {}", post_up));
+                lines.push_str(&format!("PostUp = {}\n", post_up));
             }
 
             // PreDown, if any
             if let Some(pre_down) = interface.pre_down() {
-                lines.push(format!("PreDown = {}", pre_down));
+                lines.push_str(&format!("PreDown = {}\n", pre_down));
             }
 
             // PostDown, if any
             if let Some(post_down) = interface.post_down() {
-                lines.push(format!("PostDown = {}", post_down));
+                lines.push_str(&format!("PostDown = {}\n", post_down));
             }
 
-            if let Some(node_list) = self.node_list {
+            if let Some(node_list) = self.node_list.clone() {
                 for node_peer in node_list {
                     // node name
-                    lines.push(format!("# {}", node_peer.name()));
+                    lines.push_str(&format!("# {}\n", node_peer.name()));
 
-                    let peer: Peer = node_peer.into();
+                    let peer = Peer::from(node_peer);
 
                     // Peer section begins
-                    lines.push("[Peer]".to_string());
+                    lines.push_str("[Peer]\n");
 
                     // Peer Public key
-                    lines.push(format!("PublicKey = {}", peer.public_key()));
+                    lines.push_str(&format!("PublicKey = {}\n", peer.public_key()?));
 
                     // Peer Allowed IPs
-                    lines.push(format!("AllowedIPs = {}", peer.allowed_ips()));
+                    lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
 
                     // Keepalive
                     if let Some(keepalive) = peer.persistent_keepalive() {
-                        lines.push(format!("PersistentKeepalive = {}", keepalive));
+                        lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
                     }
                 }
             }
-            return Some(lines.join("\n"));
+            return Ok(Some(lines));
         }
-        None
+        Ok(None)
     }
 
-    pub fn to_peer_configuration_str(self) -> Option<String> {
-        if let Some(node_list) = self.node_list {
+    pub fn to_peer_configuration_str(&self) -> Option<String> {
+        if let Some(node_list) = self.node_list.clone() {
             if node_list.is_empty().not() {
                 println!("{:?}", node_list);
             }

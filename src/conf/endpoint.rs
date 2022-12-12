@@ -1,5 +1,6 @@
 use crate::args::{AddPeer, AddServer};
 use crate::wg;
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 // interface configuration of wireguard
@@ -24,24 +25,25 @@ pub struct Interface {
 }
 
 impl Interface {
-    pub fn address(&self) -> String {
-        self.address
+    pub fn address(&self) -> anyhow::Result<String> {
+        Ok(self
+            .address
             .as_deref()
-            .expect("address is undefined")
+            .context("address is undefined")?
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<String>>()
-            .join(", ")
+            .join(", "))
     }
 
-    pub fn private_key(&self) -> &str {
+    pub fn private_key(&self) -> anyhow::Result<&str> {
         self.private_key
             .as_deref()
-            .expect("private key is undefined")
+            .context("private key is undefined")
     }
 
-    pub fn listen_port(&self) -> u16 {
-        self.listen_port.expect("listen port is undefined")
+    pub fn listen_port(&self) -> anyhow::Result<u16> {
+        self.listen_port.context("listen port is undefined")
     }
 
     pub fn mtu(&self) -> Option<&u16> {
@@ -98,6 +100,22 @@ impl Interface {
     }
 }
 
+impl From<Node> for Interface {
+    fn from(node: Node) -> Self {
+        let mut interface = Interface::default();
+        interface
+            .with_private_key(node.private_key)
+            .with_address(node.address)
+            .with_listen_port(node.listen_port)
+            .with_mtu(node.mtu)
+            .with_post_up(node.post_up)
+            .with_post_down(node.post_down)
+            .with_pre_up(node.pre_up)
+            .with_pre_down(node.pre_down);
+        interface
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Peer {
     // peer's public key
@@ -114,18 +132,21 @@ pub struct Peer {
 
 // peer configuration of wireguard
 impl Peer {
-    pub fn allowed_ips(&self) -> String {
-        self.allowed_ips
+    pub fn allowed_ips(&self) -> anyhow::Result<String> {
+        Ok(self
+            .allowed_ips
             .as_deref()
-            .expect("allowed_ips is undefined")
+            .context("allowed_ips is undefined")?
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<String>>()
-            .join(", ")
+            .join(", "))
     }
 
-    pub fn public_key(&self) -> &str {
-        self.public_key.as_deref().expect("public key is undefined")
+    pub fn public_key(&self) -> anyhow::Result<&str> {
+        self.public_key
+            .as_deref()
+            .context("public key is undefined")
     }
 
     pub fn endpoint(&self) -> Option<String> {
@@ -162,6 +183,21 @@ impl Peer {
     pub fn with_endpoint(&mut self, endpoint: Option<Endpoint>) -> &mut Peer {
         self.endpoint = endpoint;
         self
+    }
+}
+
+impl From<Node> for Peer {
+    fn from(node: Node) -> Self {
+        let mut peer = Peer::default();
+        let addrs = node.address.unwrap_or_default();
+        let mut allowed_ips = node.allowed_ips.unwrap_or_default();
+        allowed_ips.extend(addrs);
+        peer.with_public_key(node.public_key)
+            .with_persistent_keepalive(node.persistent_keepalive)
+            .with_allowed_ips(Some(allowed_ips))
+            .with_mtu(node.mtu)
+            .with_endpoint(node.endpoint);
+        peer
     }
 }
 
@@ -207,7 +243,7 @@ impl ToString for IpNet {
 }
 
 // node configuration of wireguard
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Node {
     // node name
     pub name: Option<String>,
@@ -305,37 +341,6 @@ impl Node {
     }
     pub fn name(&self) -> &str {
         self.name.as_deref().expect("peer is not named")
-    }
-}
-
-impl Into<Interface> for Node {
-    fn into(self) -> Interface {
-        let mut interface = Interface::default();
-        interface
-            .with_private_key(self.private_key)
-            .with_address(self.address)
-            .with_listen_port(self.listen_port)
-            .with_mtu(self.mtu)
-            .with_post_up(self.post_up)
-            .with_post_down(self.post_down)
-            .with_pre_up(self.pre_up)
-            .with_pre_down(self.pre_down);
-        interface
-    }
-}
-
-impl Into<Peer> for Node {
-    fn into(self) -> Peer {
-        let mut peer = Peer::default();
-        let addrs = self.address.unwrap_or_default();
-        let mut allowed_ips = self.allowed_ips.unwrap_or_default();
-        allowed_ips.extend(addrs);
-        peer.with_public_key(self.public_key)
-            .with_persistent_keepalive(self.persistent_keepalive)
-            .with_allowed_ips(Some(allowed_ips))
-            .with_mtu(self.mtu)
-            .with_endpoint(self.endpoint);
-        peer
     }
 }
 

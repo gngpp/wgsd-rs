@@ -129,7 +129,7 @@ pub(crate) async fn subcommand_config_handler(
     match _conf {
         Config { cat, sync: _ } => {
             if cat {
-                if let Some(config_str) = wg.to_server_configuration_str() {
+                if let Some(config_str) = wg.to_server_configuration_str()? {
                     println!("{}", config_str);
                 }
 
