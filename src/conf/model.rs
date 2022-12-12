@@ -126,7 +126,7 @@ impl WireGuard {
         }
     }
 
-    pub fn server_configuration_str(self) -> Option<String> {
+    pub fn to_server_configuration_str(self) -> Option<String> {
         if let Some(node_server) = self.node_server {
             let mut lines: Vec<String> = Vec::new();
             // node name

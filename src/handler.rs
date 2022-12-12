@@ -129,7 +129,13 @@ pub(crate) async fn subcommand_config_handler(
     match _conf {
         Config { cat, sync: _ } => {
             if cat {
-                println!("{}", wg.server_configuration_str().unwrap_or_default());
+                if let Some(config_str) = wg.to_server_configuration_str() {
+                    println!("{}", config_str);
+                }
+
+                if let Some(config_str) = wg.to_peer_configuration_str() {
+                    println!("{}", config_str);
+                }
             }
         }
     }
