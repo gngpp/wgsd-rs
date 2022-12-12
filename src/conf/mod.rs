@@ -67,8 +67,7 @@ impl Configuration {
         tokio::fs::write(&self.path, str).await.context(format!(
             "Error writing to {} config file",
             self.path.display()
-        ))?;
-        Ok(())
+        ))
     }
 
     pub async fn new(conf: String) -> anyhow::Result<Self> {
