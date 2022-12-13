@@ -166,7 +166,7 @@ impl super::RW for WireGuard {
 
     async fn push(&mut self, node: Node) -> anyhow::Result<()> {
         if self.node_server.is_none() {
-            anyhow::bail!("Please add Server Peer Node first");
+            return Err(anyhow::anyhow!("Please add Server Peer Node first"));
         }
         let peer_list = self.node_list.get_or_insert_with(Vec::new);
         if let Some(name) = &node.name {
@@ -179,10 +179,12 @@ impl super::RW for WireGuard {
         Ok(())
     }
 
-    async fn remove_for_name(&mut self, node_name: String) -> anyhow::Result<()> {
+    async fn remove_for_name(&mut self, node_name: &str) -> anyhow::Result<()> {
         if let Some(peer_list) = self.node_list.as_mut() {
-            if let Some(index) = peer_list.iter().position(|n| n.name().eq(&node_name)) {
+            if let Some(index) = peer_list.iter().position(|n| n.name().eq(node_name)) {
                 peer_list.remove(index);
+            } else {
+                return Err(anyhow::anyhow!(format!("There is no node named {}", node_name)))
             }
         }
         Ok(())
@@ -191,7 +193,7 @@ impl super::RW for WireGuard {
     async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
         if let Some(peer_list) = self.node_list.as_mut() {
             if index >= peer_list.len() {
-                anyhow::bail!(format!("index data {} out of bounds", index));
+                return Err(anyhow::anyhow!(format!("index data {} out of bounds", index)));
             }
             peer_list.remove(index);
         }

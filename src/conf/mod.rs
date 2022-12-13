@@ -23,7 +23,7 @@ pub trait RW {
     async fn push(&mut self, node: Node) -> anyhow::Result<()>;
 
     // remove node from list
-    async fn remove_for_name(&mut self, node_name: String) -> anyhow::Result<()>;
+    async fn remove_for_name(&mut self, node_name: &str) -> anyhow::Result<()>;
 
     // remove node from list
     async fn remove(&mut self, index: usize) -> anyhow::Result<()>;
@@ -125,7 +125,7 @@ impl RW for Configuration {
         Configuration::write(&self.path, &wg).await
     }
 
-    async fn remove_for_name(&mut self, node_name: String) -> anyhow::Result<()> {
+    async fn remove_for_name(&mut self, node_name: &str) -> anyhow::Result<()> {
         let mut wg = self.wireguard.lock().await;
         wg.remove_for_name(node_name).await?;
         Configuration::write(&self.path, &wg).await

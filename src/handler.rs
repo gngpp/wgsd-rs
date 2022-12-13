@@ -53,7 +53,7 @@ async fn subcommand_revoke_peer_handler_inner(
                 "\\"
             }
         };
-        println!("You can enter a serial number, or enters the 'exit' command");
+        println!("You can enter a serial number or a name, or enters the 'exit' command");
         node_list
             .iter()
             .enumerate()
@@ -87,7 +87,15 @@ async fn subcommand_revoke_peer_handler_inner(
                             break;
                         }
                         _ => {
-                            println!("Unknown command: {}", input);
+                            match configuration.remove_for_name(input.as_str()).await {
+                                Ok(_) => {
+                                    modify = true;
+                                    break;
+                                }
+                                Err(err) => {
+                                    println!("error: {}", err.to_string())
+                                }
+                            }
                         }
                     }
                 }
@@ -96,7 +104,7 @@ async fn subcommand_revoke_peer_handler_inner(
     }
 
     if let Some(name) = _name {
-        configuration.remove_for_name(name).await?;
+        configuration.remove_for_name(name.as_str()).await?;
         modify = true;
     }
 
