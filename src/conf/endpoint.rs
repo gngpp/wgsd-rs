@@ -1,4 +1,4 @@
-use crate::args::{AddPeer, AddServer};
+use crate::args::{AddPeer, AddPeerServer};
 use crate::wg;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
@@ -344,8 +344,8 @@ impl Node {
     }
 }
 
-impl From<AddServer> for Node {
-    fn from(add_server: AddServer) -> Self {
+impl From<AddPeerServer> for Node {
+    fn from(add_server: AddPeerServer) -> Self {
         let mut node = Node::default();
         let key_pair = wg::WireGuardCommand::generate_key_pair(false).unwrap();
         node.with_name(Some(add_server.name))

@@ -1,13 +1,13 @@
 use crate::args;
 
+use crate::conf::endpoint::Node;
+use crate::conf::{Configuration, RW};
 use clap::ArgMatches;
 use std::io::{Read, Write};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
-use crate::conf::{Configuration, RW};
-use crate::conf::endpoint::Node;
 
 pub(crate) async fn subcommand_add_server_handler(
-    _add_server: args::AddServer,
+    _add_server: args::AddPeerServer,
     _config: String,
 ) -> anyhow::Result<()> {
     let mut configuration = Configuration::new(_config).await?;
@@ -25,87 +25,64 @@ pub(crate) async fn subcommand_add_peer_handler(
     configuration.print_std().await
 }
 
-pub(crate) async fn subcommand_revoke_peer_handler(
-    revoke_peer: args::RevokePeer,
-    config: String,
-) -> anyhow::Result<()> {
-    match revoke_peer {
-        args::RevokePeer { shell, name } => {
-            subcommand_revoke_peer_handler_inner(shell, name, config).await
-        }
-    }
-}
-
-async fn subcommand_revoke_peer_handler_inner(
-    _shell: bool,
-    _name: Option<String>,
-    _config: String,
-) -> anyhow::Result<()> {
-    let mut configuration = Configuration::new(_config).await?;
+pub(crate) async fn subcommand_revoke_peer_handler(config: String) -> anyhow::Result<()> {
+    let mut configuration = Configuration::new(config).await?;
     // read configuration
     let node_list = configuration.list().await?;
     let mut modify = false;
-    if _shell {
-        let format_print = |x: usize| {
-            if x % 2 == 0 {
-                "/"
-            } else {
-                "\\"
-            }
-        };
-        println!("You can enter a serial number or a name, or enters the 'exit' command");
-        node_list
-            .iter()
-            .enumerate()
-            .map(|(i, v)| format!("{} {} {}", i, format_print(i), v.name()))
-            .for_each(|v| println!("{}", v));
+    let format_print = |x: usize| {
+        if x % 2 == 0 {
+            "/"
+        } else {
+            "\\"
+        }
+    };
+    println!("You can enter a serial number or a name, or enters the 'exit' command");
+    node_list
+        .iter()
+        .enumerate()
+        .map(|(i, v)| format!("{} {} {}", i, format_print(i), v.name()))
+        .for_each(|v| println!("{}", v));
 
-        // Loops until the user enters the "exit" command
-        let mut stdout = tokio::io::stdout();
-        loop {
+    // Loops until the user enters the "exit" command
+    let mut stdout = tokio::io::stdout();
+    loop {
+        stdout.write_all(b"revoke> ").await?;
+        stdout.flush().await?;
 
-            stdout.write_all(b"revoke> ").await?;
-            stdout.flush().await?;
-
-            let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
-            let input = stdin.next_line().await?.unwrap();
-            // Perform actions based on user input
-            match input.parse::<usize>() {
-                Ok(index) => {
-                    if index > node_list.len() - 1 {
-                        println!("Unknown command: {}", input);
-                    } else {
-                        configuration.remove(index).await?;
+        let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
+        let input = stdin.next_line().await?.unwrap();
+        // Perform actions based on user input
+        match input.parse::<usize>() {
+            Ok(index) => {
+                match configuration.remove(index).await {
+                    Ok(_) => {
                         modify = true;
                         break;
                     }
-                }
-                Err(_) => {
-                    match input.as_str() {
-                        "exit" => {
-                            // exit shell
-                            break;
-                        }
-                        _ => {
-                            match configuration.remove_for_name(input.as_str()).await {
-                                Ok(_) => {
-                                    modify = true;
-                                    break;
-                                }
-                                Err(err) => {
-                                    println!("error: {}", err.to_string())
-                                }
-                            }
-                        }
+                    Err(err) => {
+                        println!("error: {}", err.to_string())
                     }
                 }
             }
+            Err(_) => {
+                match input.as_str() {
+                    "exit" => {
+                        // exit shell
+                        break;
+                    }
+                    _ => match configuration.remove_for_name(input.as_str()).await {
+                        Ok(_) => {
+                            modify = true;
+                            break;
+                        }
+                        Err(err) => {
+                            println!("error: {}", err.to_string())
+                        }
+                    },
+                }
+            }
         }
-    }
-
-    if let Some(name) = _name {
-        configuration.remove_for_name(name.as_str()).await?;
-        modify = true;
     }
 
     if modify {

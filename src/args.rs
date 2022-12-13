@@ -41,17 +41,16 @@ pub(crate) struct Wgsdc {
 
 #[derive(Subcommand)]
 pub(crate) enum SubCommands {
-    /// Add WireGuard Server
+    /// Add WireGuard Peer Server
     #[command(arg_required_else_help = true)]
-    AddServer(AddServer),
+    AddPeerServer(AddPeerServer),
 
     /// Add WireGuard Peer
     #[command(arg_required_else_help = true)]
     AddPeer(AddPeer),
 
     /// Revoke WireGuard existing peer
-    #[command(arg_required_else_help = true)]
-    RevokePeer(RevokePeer),
+    RevokePeer,
 
     /// WireGuard Configuration
     #[command(arg_required_else_help = true)]
@@ -60,7 +59,7 @@ pub(crate) enum SubCommands {
 
 #[allow(unused_qualifications)]
 #[derive(Args)]
-pub(crate) struct AddServer {
+pub(crate) struct AddPeerServer {
     /// Interface's name
     #[arg(long, short)]
     pub name: String,
@@ -141,16 +140,6 @@ pub(crate) struct AddPeer {
     /// Peer's WireGuard PreDown command
     #[arg(long)]
     pub pre_down: Option<String>,
-}
-
-#[derive(Args)]
-pub(crate) struct RevokePeer {
-    /// Peer's name
-    #[arg(long, short, group = "revoke")]
-    pub name: Option<String>,
-    /// Enter shell mode
-    #[arg(long, group = "revoke")]
-    pub shell: bool,
 }
 
 #[derive(Args)]

@@ -184,7 +184,10 @@ impl super::RW for WireGuard {
             if let Some(index) = peer_list.iter().position(|n| n.name().eq(node_name)) {
                 peer_list.remove(index);
             } else {
-                return Err(anyhow::anyhow!(format!("There is no node named {}", node_name)))
+                return Err(anyhow::anyhow!(format!(
+                    "There is no node named '{}'",
+                    node_name
+                )));
             }
         }
         Ok(())
@@ -193,7 +196,10 @@ impl super::RW for WireGuard {
     async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
         if let Some(peer_list) = self.node_list.as_mut() {
             if index >= peer_list.len() {
-                return Err(anyhow::anyhow!(format!("index data {} out of bounds", index)));
+                return Err(anyhow::anyhow!(format!(
+                    "index data {} out of bounds",
+                    index
+                )));
             }
             peer_list.remove(index);
         }
