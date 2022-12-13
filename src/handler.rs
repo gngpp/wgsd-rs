@@ -1,37 +1,27 @@
 use crate::args;
-use crate::args::Config;
-use crate::conf::endpoint::Node;
-use crate::conf::Configuration;
+
 use clap::ArgMatches;
 use std::io::{Read, Write};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+use crate::conf::{Configuration, RW};
+use crate::conf::endpoint::Node;
 
 pub(crate) async fn subcommand_add_server_handler(
-    add_server: args::AddServer,
-    config: String,
+    _add_server: args::AddServer,
+    _config: String,
 ) -> anyhow::Result<()> {
-    let configuration = Configuration::new(config).await?;
-    // read configuration
-    let mut wgsdc = configuration.read().await?;
+    let mut configuration = Configuration::new(_config).await?;
     // set peer node
-    wgsdc.set(Node::from(add_server))?;
-    // write configuration
-    configuration.write(wgsdc).await?;
-    // print configuration to std
+    configuration.set(Node::from(_add_server)).await?;
     configuration.print_std().await
 }
 
 pub(crate) async fn subcommand_add_peer_handler(
-    add_peer: args::AddPeer,
-    config: String,
+    _add_peer: args::AddPeer,
+    _config: String,
 ) -> anyhow::Result<()> {
-    let configuration = Configuration::new(config).await?;
-    // read configuration
-    let mut wg = configuration.read().await?;
-    // push peer list
-    wg.push(Node::from(add_peer))?;
-    // write configuration
-    configuration.write(wg).await?;
-    // print configuration to std
+    let mut configuration = Configuration::new(_config).await?;
+    configuration.push(Node::from(_add_peer)).await?;
     configuration.print_std().await
 }
 
@@ -47,16 +37,15 @@ pub(crate) async fn subcommand_revoke_peer_handler(
 }
 
 async fn subcommand_revoke_peer_handler_inner(
-    shell: bool,
-    name: Option<String>,
-    config: String,
+    _shell: bool,
+    _name: Option<String>,
+    _config: String,
 ) -> anyhow::Result<()> {
-    let configuration = Configuration::new(config).await?;
+    let mut configuration = Configuration::new(_config).await?;
     // read configuration
-    let mut wg = configuration.read().await?;
-    let node_list = wg.list()?;
+    let node_list = configuration.list().await?;
     let mut modify = false;
-    if shell {
+    if _shell {
         let format_print = |x: usize| {
             if x % 2 == 0 {
                 "/"
@@ -72,28 +61,27 @@ async fn subcommand_revoke_peer_handler_inner(
             .for_each(|v| println!("{}", v));
 
         // Loops until the user enters the "exit" command
+        let mut stdout = tokio::io::stdout();
         loop {
-            print!("revoke> ");
-            std::io::stdout().flush()?;
 
-            let mut input = String::new();
-            std::io::stdin().read_line(&mut input).unwrap();
+            stdout.write_all(b"revoke> ").await?;
+            stdout.flush().await?;
 
-            let input = input.trim();
-
+            let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
+            let input = stdin.next_line().await?.unwrap();
             // Perform actions based on user input
             match input.parse::<usize>() {
                 Ok(index) => {
                     if index > node_list.len() - 1 {
                         println!("Unknown command: {}", input);
                     } else {
-                        node_list.remove(index);
+                        configuration.remove(index).await?;
                         modify = true;
                         break;
                     }
                 }
                 Err(_) => {
-                    match input {
+                    match input.as_str() {
                         "exit" => {
                             // exit shell
                             break;
@@ -107,13 +95,12 @@ async fn subcommand_revoke_peer_handler_inner(
         }
     }
 
-    if let Some(name) = name {
-        wg.remove(name)?;
+    if let Some(name) = _name {
+        configuration.remove_for_name(name).await?;
         modify = true;
     }
 
     if modify {
-        configuration.write(wg).await?;
         configuration.print_std().await?;
     }
 
@@ -122,23 +109,23 @@ async fn subcommand_revoke_peer_handler_inner(
 
 pub(crate) async fn subcommand_config_handler(
     _conf: args::Config,
-    config: String,
+    _config: String,
 ) -> anyhow::Result<()> {
-    let configuration = Configuration::new(config).await?;
-    let wg = configuration.read().await?;
-    match _conf {
-        Config { cat, sync: _ } => {
-            if cat {
-                if let Some(config_str) = wg.to_server_configuration_str()? {
-                    println!("{}", config_str);
-                }
-
-                if let Some(config_str) = wg.to_peer_configuration_str() {
-                    println!("{}", config_str);
-                }
-            }
-        }
-    }
+    // let configuration = Configuration::new(config).await?;
+    // let wg = configuration.read().await?;
+    // match _conf {
+    //     Config { cat, sync: _ } => {
+    //         if cat {
+    //             if let Some(config_str) = wg.to_server_configuration_str()? {
+    //                 println!("{}", config_str);
+    //             }
+    //
+    //             if let Some(config_str) = wg.to_peer_configuration_str() {
+    //                 println!("{}", config_str);
+    //             }
+    //         }
+    //     }
+    // }
     Ok(())
 }
 

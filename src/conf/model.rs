@@ -1,69 +1,14 @@
-use std::ops::Not;
-
 use crate::conf::endpoint::{Interface, Node, Peer};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct WireGuard {
+pub(super) struct WireGuard {
     node_server: Option<Node>,
     node_list: Option<Vec<Node>>,
 }
 
 impl WireGuard {
-    // set node server
-    pub fn set(&mut self, node: Node) -> anyhow::Result<()> {
-        if let Some(ref mut n) = self.node_server {
-            WireGuard::map_set(n, node)
-        } else {
-            self.node_server = Some(node)
-        }
-        Ok(())
-    }
-
-    // push node to list
-    pub fn push(&mut self, node: Node) -> anyhow::Result<()> {
-        if self.node_server.is_none() {
-            anyhow::bail!("Please add Server Peer Node first");
-        }
-        let peer_list = self.node_list.get_or_insert_with(Vec::new);
-        if let Some(name) = &node.name {
-            if let Some(index) = peer_list.iter().position(|n| n.name().eq(name)) {
-                WireGuard::map_set(&mut peer_list[index], node);
-            } else {
-                peer_list.push(node)
-            }
-        }
-        Ok(())
-    }
-
-    // remove from node list
-    pub fn remove(&mut self, node_name: String) -> anyhow::Result<()> {
-        if let Some(peer_list) = self.node_list.as_mut() {
-            if let Some(index) = peer_list.iter().position(|n| n.name().eq(&node_name)) {
-                peer_list.remove(index);
-            }
-        }
-        Ok(())
-    }
-
-    // get from node list
-    pub fn list(&mut self) -> anyhow::Result<&mut Vec<Node>> {
-        Ok(self.node_list.get_or_insert_with(Vec::new))
-    }
-
-    // exist peer
-    pub fn exist(&self, name: String) -> bool {
-        if let Some(peer_list) = self.node_list.as_ref() {
-            return peer_list
-                .iter()
-                .map(|x| x.name())
-                .collect::<Vec<&str>>()
-                .contains(&name.as_str());
-        }
-        false
-    }
-
     // replace if not present
     fn map_set(change: &mut Node, node: Node) {
         // node name
@@ -126,7 +71,7 @@ impl WireGuard {
         }
     }
 
-    pub fn to_server_configuration_str(&self) -> anyhow::Result<Option<String>> {
+    pub(super) fn to_server_configuration_str(&self) -> anyhow::Result<Option<String>> {
         if let Some(node_server) = self.node_server.clone() {
             let mut lines = String::new();
             // node name
@@ -198,12 +143,73 @@ impl WireGuard {
         Ok(None)
     }
 
-    pub fn to_peer_configuration_str(&self) -> Option<String> {
-        if let Some(node_list) = self.node_list.clone() {
-            if node_list.is_empty().not() {
-                println!("{:?}", node_list);
+    pub(super) fn to_peer_configuration_str(&self) -> Option<String> {
+        if let Some(_node_server) = self.node_server.clone() {}
+        None
+    }
+}
+
+#[async_trait::async_trait]
+impl super::RW for WireGuard {
+    async fn get(&mut self) -> anyhow::Result<Node> {
+        Ok(self.node_server.get_or_insert_with(Node::default).clone())
+    }
+
+    async fn set(&mut self, node: Node) -> anyhow::Result<()> {
+        if let Some(ref mut n) = self.node_server {
+            Self::map_set(n, node)
+        } else {
+            self.node_server = Some(node)
+        }
+        Ok(())
+    }
+
+    async fn push(&mut self, node: Node) -> anyhow::Result<()> {
+        if self.node_server.is_none() {
+            anyhow::bail!("Please add Server Peer Node first");
+        }
+        let peer_list = self.node_list.get_or_insert_with(Vec::new);
+        if let Some(name) = &node.name {
+            if let Some(index) = peer_list.iter().position(|n| n.name().eq(name)) {
+                Self::map_set(&mut peer_list[index], node);
+            } else {
+                peer_list.push(node)
             }
         }
-        None
+        Ok(())
+    }
+
+    async fn remove_for_name(&mut self, node_name: String) -> anyhow::Result<()> {
+        if let Some(peer_list) = self.node_list.as_mut() {
+            if let Some(index) = peer_list.iter().position(|n| n.name().eq(&node_name)) {
+                peer_list.remove(index);
+            }
+        }
+        Ok(())
+    }
+
+    async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
+        if let Some(peer_list) = self.node_list.as_mut() {
+            if index >= peer_list.len() {
+                anyhow::bail!(format!("index data {} out of bounds", index));
+            }
+            peer_list.remove(index);
+        }
+        Ok(())
+    }
+
+    async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
+        Ok(self.node_list.get_or_insert_with(Vec::new).clone())
+    }
+
+    async fn exist(&self, name: String) -> bool {
+        if let Some(peer_list) = self.node_list.as_ref() {
+            return peer_list
+                .iter()
+                .map(|x| x.name())
+                .collect::<Vec<&str>>()
+                .contains(&name.as_str());
+        }
+        false
     }
 }
