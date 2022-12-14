@@ -41,9 +41,9 @@ pub(crate) struct Wgsdc {
 
 #[derive(Subcommand)]
 pub(crate) enum SubCommands {
-    /// Add WireGuard Peer Server
+    /// Add WireGuard Peer Relay
     #[command(arg_required_else_help = true)]
-    AddPeerServer(AddPeerServer),
+    AddPeerRelay(AddPeerRelay),
 
     /// Add WireGuard Peer
     #[command(arg_required_else_help = true)]
@@ -62,7 +62,7 @@ pub(crate) enum SubCommands {
 
 #[allow(unused_qualifications)]
 #[derive(Args)]
-pub(crate) struct AddPeerServer {
+pub(crate) struct AddPeerRelay {
     /// Interface's name
     #[arg(long, short)]
     pub name: String,

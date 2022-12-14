@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
     // enabled debug mode
     init_log(wgsdc.debug);
     match wgsdc.commands {
-        Some(SubCommands::AddPeerServer(add_interface)) => {
+        Some(SubCommands::AddPeerRelay(add_interface)) => {
             handler::subcommand_add_server_handler(add_interface, wgsdc.config).await?
         }
 

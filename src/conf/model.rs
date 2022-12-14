@@ -1,4 +1,4 @@
-use crate::conf::endpoint::{Node};
+use crate::conf::endpoint::Node;
 use std::ops::Deref;
 
 use crate::conf::RW;

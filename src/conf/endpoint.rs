@@ -1,4 +1,4 @@
-use crate::args::{AddPeer, AddPeerServer};
+use crate::args::{AddPeer, AddPeerRelay};
 use crate::wg;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
@@ -189,14 +189,26 @@ impl Peer {
 impl From<Node> for Peer {
     fn from(node: Node) -> Self {
         let mut peer = Peer::default();
-        let addrs = node.address.unwrap_or_default();
-        let mut allowed_ips = node.allowed_ips.unwrap_or_default();
-        allowed_ips.extend(addrs);
-        peer.with_public_key(node.public_key)
-            .with_persistent_keepalive(node.persistent_keepalive)
-            .with_allowed_ips(Some(allowed_ips))
-            .with_mtu(node.mtu)
-            .with_endpoint(node.endpoint);
+        if node.relay {
+            peer.with_public_key(node.public_key)
+                .with_persistent_keepalive(node.persistent_keepalive)
+                // peer relay allowed_ips
+                .with_allowed_ips(node.allowed_ips)
+                .with_mtu(node.mtu)
+                .with_endpoint(node.endpoint);
+        } else {
+            // peer relay address: 10.6.0.1/24
+            // example:
+            let mut allowed_ips = node.allowed_ips.unwrap_or_default();
+            allowed_ips.extend(node.address.unwrap_or_default());
+            peer.with_public_key(node.public_key)
+                .with_persistent_keepalive(node.persistent_keepalive)
+                // peer relay allowed_ips
+                .with_allowed_ips(Some(allowed_ips))
+                .with_mtu(node.mtu)
+                .with_endpoint(node.endpoint);
+        }
+
         peer
     }
 }
@@ -245,28 +257,30 @@ impl ToString for IpNet {
 // node configuration of wireguard
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Node {
+    // relay node
+    pub(super) relay: bool,
     // node name
-    pub name: Option<String>,
+    pub(super) name: Option<String>,
     // server node address
-    pub address: Option<Vec<IpNet>>,
+    pub(super) address: Option<Vec<IpNet>>,
     // node's public key
-    pub public_key: Option<String>,
+    pub(super) public_key: Option<String>,
     // node's private key
-    pub private_key: Option<String>,
+    pub(super) private_key: Option<String>,
     // node's listen port
-    pub listen_port: Option<u16>,
+    pub(super) listen_port: Option<u16>,
     // node's router allowed ips
-    pub allowed_ips: Option<Vec<IpNet>>,
+    pub(super) allowed_ips: Option<Vec<IpNet>>,
     // node's endpoint router allowed ips
-    pub endpoint_allowed_ips: Option<Vec<IpNet>>,
+    pub(super) endpoint_allowed_ips: Option<Vec<IpNet>>,
     // node's keep alive interval
-    pub persistent_keepalive: Option<u16>,
+    pub(super) persistent_keepalive: Option<u16>,
     // node's peer endpoint
-    pub endpoint: Option<Endpoint>,
+    pub(super) endpoint: Option<Endpoint>,
     // node's MTU
-    pub mtu: Option<u16>,
+    pub(super) mtu: Option<u16>,
     // node's PreUP
-    pub pre_up: Option<String>,
+    pub(super) pre_up: Option<String>,
     // node's PostUp
     pub post_up: Option<String>,
     // node's PreDown
@@ -280,6 +294,10 @@ impl Node {
      * Builder functions
      */
 
+    pub fn with_relay(&mut self, relay: bool) -> &mut Node {
+        self.relay = relay;
+        self
+    }
     pub fn with_name(&mut self, name: Option<String>) -> &mut Node {
         self.name = name;
         self
@@ -344,24 +362,25 @@ impl Node {
     }
 }
 
-impl From<AddPeerServer> for Node {
-    fn from(add_server: AddPeerServer) -> Self {
+impl From<AddPeerRelay> for Node {
+    fn from(add_peer_relay: AddPeerRelay) -> Self {
         let mut node = Node::default();
         let key_pair = wg::WireGuardCommand::generate_key_pair(false).unwrap();
-        node.with_name(Some(add_server.name))
+        node.with_relay(true)
+            .with_name(Some(add_peer_relay.name))
             .with_endpoint(Some(Endpoint::new(
-                add_server.endpoint,
-                add_server.listen_port,
+                add_peer_relay.endpoint,
+                add_peer_relay.listen_port,
             )))
-            .with_address(Some(add_server.address))
-            .with_listen_port(Some(add_server.listen_port))
-            .with_mtu(Some(add_server.mtu))
+            .with_address(Some(add_peer_relay.address))
+            .with_listen_port(Some(add_peer_relay.listen_port))
+            .with_mtu(Some(add_peer_relay.mtu))
             .with_public_key(Some(key_pair.public_key().to_string()))
             .with_private_key(Some(key_pair.private_key().to_string()))
-            .with_post_up(add_server.post_up)
-            .with_post_down(add_server.post_down)
-            .with_pre_up(add_server.pre_up)
-            .with_pre_down(add_server.pre_down);
+            .with_post_up(add_peer_relay.post_up)
+            .with_post_down(add_peer_relay.post_down)
+            .with_pre_up(add_peer_relay.pre_up)
+            .with_pre_down(add_peer_relay.pre_down);
         node
     }
 }
@@ -370,7 +389,8 @@ impl From<AddPeer> for Node {
     fn from(add_peer: AddPeer) -> Self {
         let mut node = Node::default();
         let key_pair = wg::WireGuardCommand::generate_key_pair(false).unwrap();
-        node.with_name(Some(add_peer.name))
+        node.with_relay(false)
+            .with_name(Some(add_peer.name))
             .with_address(Some(add_peer.address))
             .with_allowed_ips(Some(add_peer.allowed_ips))
             .with_endpoint_allowed_ips(Some(add_peer.endpoint_allowed_ips))
