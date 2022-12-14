@@ -1,8 +1,10 @@
 use crate::args;
 
 use crate::conf::endpoint::Node;
-use crate::conf::{Configuration, RW};
+use crate::conf::{AsyncTryFrom, Configuration, RW};
 use clap::ArgMatches;
+use inquire::error::InquireResult;
+use inquire::formatter::OptionFormatter;
 use std::io::{Read, Write};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 
@@ -20,102 +22,152 @@ pub(crate) async fn subcommand_add_peer_handler(
     _add_peer: args::AddPeer,
     _config: String,
 ) -> anyhow::Result<()> {
-    let mut configuration = Configuration::new(_config).await?;
+    let mut configuration = <Configuration as AsyncTryFrom<String>>::try_from(_config).await?;
     configuration.push(Node::from(_add_peer)).await?;
     configuration.print_std().await
 }
 
 pub(crate) async fn subcommand_revoke_peer_handler(config: String) -> anyhow::Result<()> {
-    let mut configuration = Configuration::new(config).await?;
-    // read configuration
-    let node_list = configuration.list().await?;
-    let mut modify = false;
-    let format_print = |x: usize| if x % 2 == 0 { "/" } else { "\\" };
-    // Loops until the user enters the "exit" command
-    let mut stdout = tokio::io::stdout();
-    stdout
-        .write_all(b"You can enter a serial number select the revoke peer type, or enters the 'exit' command.\n")
-        .await?;
-    stdout.flush().await?;
+    // let mut configuration = Configuration::new(config).await?;
+    // // read configuration
+    // let node_list = configuration.list().await?;
+    // let mut modify = false;
+    // let format_print = |x: usize| if x % 2 == 0 { "/" } else { "\\" };
+    // // Loops until the user enters the "exit" command
+    // let mut stdout = tokio::io::stdout();
+    // stdout
+    //     .write_all(b"You can enter a serial number select the revoke peer type, or enters the 'exit' command.\n")
+    //     .await?;
+    // stdout.flush().await?;
+    //
+    // ["peer", "peer server"]
+    //     .iter()
+    //     .enumerate()
+    //     .for_each(|(i, v)| println!("{} {} {}", i, format_print(i), v));
+    //
+    // stdout.write_all(b"revoke> ").await?;
+    // stdout.flush().await?;
+    //
+    // // stdin input command
+    // let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
+    // // command
+    // let input = stdin.next_line().await?.unwrap();
+    //
+    // match input.as_str() {
+    //     "exit" => {
+    //         return Ok(());
+    //     }
+    //     "0" => {
+    //         println!("You can enter a serial number or a name, or enters the 'exit' command.");
+    //         node_list
+    //             .iter()
+    //             .enumerate()
+    //             .for_each(|(i, v)| println!("{} {} {}", i, format_print(i), v.name()));
+    //
+    //         loop {
+    //             stdout.write_all(b"revoke> ").await?;
+    //             stdout.flush().await?;
+    //
+    //             let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
+    //             let input = stdin.next_line().await?.unwrap();
+    //             // Perform actions based on user input
+    //             match input.parse::<usize>() {
+    //                 Ok(index) => match configuration.remove_by_index(index).await {
+    //                     Ok(_) => {
+    //                         modify = true;
+    //                         break;
+    //                     }
+    //                     Err(err) => {
+    //                         println!("Error: {}", err.to_string())
+    //                     }
+    //                 },
+    //                 Err(_) => {
+    //                     match input.as_str() {
+    //                         "exit" => {
+    //                             // exit shell
+    //                             break;
+    //                         }
+    //                         _ => match configuration.remove_by_name(input.as_str()).await {
+    //                             Ok(_) => {
+    //                                 modify = true;
+    //                                 break;
+    //                             }
+    //                             Err(err) => {
+    //                                 println!("Error: {}", err.to_string())
+    //                             }
+    //                         },
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //
+    //         if modify {
+    //             configuration.print_std().await?;
+    //         }
+    //     }
+    //     "1" => {
+    //         configuration.clear().await?;
+    //     }
+    //     _ => {
+    //         println!("Unknown command: {}", input)
+    //     }
+    // }
+    //
+    // drop(stdin);
+    // drop(stdout);
+    // drop(node_list);
+    // drop(configuration);
 
-    ["peer", "peer server"]
-        .iter()
-        .enumerate()
-        .for_each(|(i, v)| println!("{} {} {}", i, format_print(i), v));
-
-    stdout.write_all(b"revoke> ").await?;
-    stdout.flush().await?;
-
-    // stdin input command
-    let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
-    // command
-    let input = stdin.next_line().await?.unwrap();
-
-    match input.as_str() {
-        "exit" => {
-            return Ok(());
-        }
-        "0" => {
-            println!("You can enter a serial number or a name, or enters the 'exit' command.");
-            node_list
-                .iter()
-                .enumerate()
-                .for_each(|(i, v)| println!("{} {} {}", i, format_print(i), v.name()));
-
-            loop {
-                stdout.write_all(b"revoke> ").await?;
-                stdout.flush().await?;
-
-                let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
-                let input = stdin.next_line().await?.unwrap();
-                // Perform actions based on user input
-                match input.parse::<usize>() {
-                    Ok(index) => match configuration.remove_by_index(index).await {
-                        Ok(_) => {
-                            modify = true;
-                            break;
-                        }
-                        Err(err) => {
-                            println!("Error: {}", err.to_string())
-                        }
-                    },
-                    Err(_) => {
-                        match input.as_str() {
-                            "exit" => {
-                                // exit shell
-                                break;
-                            }
-                            _ => match configuration.remove_by_name(input.as_str()).await {
-                                Ok(_) => {
-                                    modify = true;
-                                    break;
-                                }
-                                Err(err) => {
-                                    println!("Error: {}", err.to_string())
-                                }
-                            },
-                        }
+    let mut configuration = <Configuration as AsyncTryFrom<String>>::try_from(config).await?;
+    const PEER: &str = "peer";
+    const PEER_SERVER: &str = "peer-server";
+    let node_type_option = vec![PEER, PEER_SERVER];
+    let node_type_select = inquire::Select::new(
+        "select the peer node type that needs to be revoked.",
+        node_type_option,
+    )
+    .prompt();
+    match node_type_select {
+        Ok(node_type) => match node_type {
+            PEER => {
+                let node_list = configuration.list().await?;
+                let mut node_option = node_list.iter().map(|v| v.name()).collect::<Vec<&str>>();
+                node_option.sort();
+                let node_select = inquire::Select::new("select peer", node_option).prompt();
+                match node_select {
+                    Ok(node_name) => {
+                        if configuration.remove_by_name(node_name).await.is_ok() {
+                            configuration.print_std().await?;
+                        };
                     }
+                    Err(_) => {}
                 }
             }
-
-            if modify {
-                configuration.print_std().await?;
+            PEER_SERVER => {
+                let ans = inquire::Confirm::new("Are you sure you want to revoke the peer-server peer service node configuration?")
+                        .with_default(false)
+                        .with_help_message("This will clear the current configuration options")
+                        .prompt();
+                match ans {
+                    Ok(true) => {
+                        if configuration.clear().await.is_ok() {
+                            configuration.print_std().await?;
+                        }
+                    }
+                    Ok(false) => {
+                        println!("Operation cancel")
+                    }
+                    Err(_) => {}
+                }
             }
-        }
-        "1" => {
-            configuration.clear().await?;
-        }
-        _ => {
-            println!("Unknown command: {}", input)
+            _ => {}
+        },
+
+        Err(_) => {
+            println!("There was an error, please try again")
         }
     }
-
-    drop(stdin);
-    drop(stdout);
-    drop(node_list);
     drop(configuration);
-
     Ok(())
 }
 

@@ -4,7 +4,8 @@ use crate::conf::endpoint::Node;
 use crate::conf::model::WireGuard;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use std::ops::DerefMut;
+use inquire::validator::ErrorMessage::Default;
+use std::ops::{DerefMut, Not};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -45,7 +46,15 @@ pub trait RW {
     async fn exist(&self, name: String) -> bool;
 }
 
+#[async_trait]
+pub trait AsyncTryFrom<T>: Sized {
+    type Error;
+
+    async fn try_from(_: T) -> Result<Self, Self::Error>;
+}
+
 const DEFAULT_PATH: &str = "/etc/wireguard/wgsdc";
+const DEFAULT_FILE_SUFFIX: &str = ".yaml";
 
 pub struct Configuration {
     path: PathBuf,
@@ -56,7 +65,7 @@ impl Configuration {
     async fn init(conf: String) -> anyhow::Result<PathBuf> {
         // example: wg0
         if conf.is_empty() {
-            return Err(anyhow!("{} cannot been empty!", conf));
+            return Err(anyhow!("config name:'{}' cannot been empty!", conf));
         }
         crate::sudo()?;
         let path_buf = PathBuf::from(DEFAULT_PATH);
@@ -72,7 +81,7 @@ impl Configuration {
             log::debug!("The {} directory exists", DEFAULT_PATH);
         }
         // create file: /etc/wireguard/wgsdc/wg0.yaml
-        let path_buf = path_buf.join(format!("{}.yaml", conf));
+        let path_buf = path_buf.join(format!("{}{}", conf, DEFAULT_FILE_SUFFIX));
         if !path_buf.exists() {
             log::debug!("ready to create: {}", path_buf.display());
             tokio::fs::File::create(&path_buf).await?;
@@ -88,6 +97,7 @@ impl Configuration {
     }
 
     async fn read(path: &PathBuf) -> anyhow::Result<WireGuard> {
+        crate::sudo()?;
         log::debug!("ready to read configuration file: {}", path.display());
         let string = tokio::fs::read_to_string(path).await.context(format!(
             "Error reading {} configuration file",
@@ -97,6 +107,7 @@ impl Configuration {
     }
 
     async fn write(path: &PathBuf, wg: &WireGuard) -> anyhow::Result<()> {
+        crate::sudo()?;
         log::debug!("ready to write configuration files to: {}", path.display());
         let str = serde_yaml::to_string(wg).context("Serialized write configuration failed")?;
         tokio::fs::write(path, str)
@@ -111,6 +122,25 @@ impl Configuration {
         let wire_guard = Self::read(&path).await?;
         let configuration = Self {
             path,
+            wireguard: Arc::new(Mutex::new(wire_guard)),
+        };
+        Ok(configuration)
+    }
+}
+
+#[async_trait]
+impl AsyncTryFrom<String> for Configuration {
+    type Error = anyhow::Error;
+
+    async fn try_from(mut config: String) -> Result<Self, Self::Error> {
+        config.push_str(DEFAULT_FILE_SUFFIX);
+        let buf_path = PathBuf::from(DEFAULT_PATH).join(&config);
+        if !buf_path.exists() {
+            return Err(anyhow::anyhow!("configuration: {} does not exist!", config));
+        }
+        let wire_guard = Self::read(&buf_path).await?;
+        let configuration = Self {
+            path: buf_path,
             wireguard: Arc::new(Mutex::new(wire_guard)),
         };
         Ok(configuration)
