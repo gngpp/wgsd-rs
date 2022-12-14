@@ -1,11 +1,11 @@
 extern crate ipnet;
 
-use crate::conf::endpoint::Node;
+use crate::conf::endpoint::{Interface, Node, Peer};
 use crate::conf::model::WireGuard;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use inquire::validator::ErrorMessage::Default;
-use std::ops::{DerefMut, Not};
+
+use std::ops::{DerefMut};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -14,9 +14,12 @@ pub mod endpoint;
 mod model;
 
 #[async_trait]
-pub trait RW {
+pub trait RW: Sized {
     // get node server
     async fn get(&mut self) -> anyhow::Result<Node>;
+
+    // get node by name(exclude node server)
+    async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node>;
 
     // set node server
     async fn set(&mut self, node: Node) -> anyhow::Result<()>;
@@ -96,6 +99,158 @@ impl Configuration {
         Ok(())
     }
 
+    // node configuration string
+    pub async fn peer_str(&mut self, name: &str) -> anyhow::Result<String> {
+        // node
+        let node = self.get_by_name(name).await?;
+        // node server
+        let node_server = self.get().await?;
+
+        let mut lines = String::new();
+        // node name
+        lines.push_str(&format!("# {}\n", node.name()));
+
+        let interface = Interface::from(node);
+
+        // Interface section begins
+        lines.push_str("[Interface]\n");
+
+        // Interface Private key
+        lines.push_str(&format!("PrivateKey = {}\n", interface.private_key()?));
+
+        // Interface address
+        lines.push_str(&format!("Address = {}\n", interface.address()?));
+
+        // Interface listen port, if any
+        if let Some(listen_port) = interface.listen_port() {
+            lines.push_str(&format!("ListenPort = {}\n", listen_port));
+        }
+
+        // MTU, if any
+        if let Some(mtu) = interface.mtu() {
+            lines.push_str(&format!("MTU = {}\n", mtu));
+        }
+
+        // PreUp, if any
+        if let Some(pre_up) = interface.pre_up() {
+            lines.push_str(&format!("PreUp = {}\n", pre_up));
+        }
+
+        // PostUp, if any
+        if let Some(post_up) = interface.post_up() {
+            lines.push_str(&format!("PostUp = {}\n", post_up));
+        }
+
+        // PreDown, if any
+        if let Some(pre_down) = interface.pre_down() {
+            lines.push_str(&format!("PreDown = {}\n", pre_down));
+        }
+
+        // PostDown, if any
+        if let Some(post_down) = interface.post_down() {
+            lines.push_str(&format!("PostDown = {}\n", post_down));
+        }
+
+        // ------------------------------Peer----------------------------------
+        // peer name
+        lines.push_str(&format!("# {}\n", node_server.name()));
+
+        let peer = Peer::from(node_server);
+
+        // Peer section begins
+        lines.push_str("[Peer]\n");
+
+        // Peer Public key
+        lines.push_str(&format!("PublicKey = {}\n", peer.public_key()?));
+
+        // Peer Allowed IPs
+        lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
+
+        // Keepalive, if any
+        if let Some(keepalive) = peer.persistent_keepalive() {
+            lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
+        }
+
+        // Peer Endpoint, if any
+        if let Some(endpoint) = peer.endpoint() {
+            lines.push_str(&format!("Endpoint = {}\n", endpoint));
+        }
+
+        Ok(lines)
+    }
+
+    // node server configuration string
+    pub async fn peer_server_str(&mut self) -> anyhow::Result<String> {
+        let node_server = self.get().await?;
+        let mut lines = String::new();
+        // node name
+        lines.push_str(&format!("# {}\n", node_server.name()));
+
+        let interface = Interface::from(node_server);
+
+        // Interface section begins
+        lines.push_str("[Interface]\n");
+
+        // Interface Private key
+        lines.push_str(&format!("PrivateKey = {}\n", interface.private_key()?));
+
+        // Interface address
+        lines.push_str(&format!("Address = {}\n", interface.address()?));
+
+        // Interface listen port, if any
+        if let Some(listen_port) = interface.listen_port() {
+            lines.push_str(&format!("ListenPort = {}\n", listen_port));
+        }
+
+        // MTU, if any
+        if let Some(mtu) = interface.mtu() {
+            lines.push_str(&format!("MTU = {}\n", mtu));
+        }
+
+        // PreUp, if any
+        if let Some(pre_up) = interface.pre_up() {
+            lines.push_str(&format!("PreUp = {}\n", pre_up));
+        }
+
+        // PostUp, if any
+        if let Some(post_up) = interface.post_up() {
+            lines.push_str(&format!("PostUp = {}\n", post_up));
+        }
+
+        // PreDown, if any
+        if let Some(pre_down) = interface.pre_down() {
+            lines.push_str(&format!("PreDown = {}\n", pre_down));
+        }
+
+        // PostDown, if any
+        if let Some(post_down) = interface.post_down() {
+            lines.push_str(&format!("PostDown = {}\n", post_down));
+        }
+
+        let node_list = self.list().await?;
+        for node_peer in node_list {
+            // node name
+            lines.push_str(&format!("# {}\n", node_peer.name()));
+
+            let peer = Peer::from(node_peer);
+
+            // Peer section begins
+            lines.push_str("[Peer]\n");
+
+            // Peer Public key
+            lines.push_str(&format!("PublicKey = {}\n", peer.public_key()?));
+
+            // Peer Allowed IPs
+            lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
+
+            // Keepalive
+            if let Some(keepalive) = peer.persistent_keepalive() {
+                lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
+            }
+        }
+        return Ok(lines);
+    }
+
     async fn read(path: &PathBuf) -> anyhow::Result<WireGuard> {
         crate::sudo()?;
         log::debug!("ready to read configuration file: {}", path.display());
@@ -151,6 +306,11 @@ impl AsyncTryFrom<String> for Configuration {
 impl RW for Configuration {
     async fn get(&mut self) -> anyhow::Result<Node> {
         self.wireguard.lock().await.get().await
+    }
+
+    async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node> {
+        let mut wg = self.wireguard.lock().await;
+        wg.get_by_name(node_name).await
     }
 
     async fn set(&mut self, node: Node) -> anyhow::Result<()> {

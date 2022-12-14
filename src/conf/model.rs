@@ -1,4 +1,5 @@
-use crate::conf::endpoint::{Interface, Node, Peer};
+use crate::conf::endpoint::{Node};
+use std::ops::Deref;
 
 use crate::conf::RW;
 use serde::{Deserialize, Serialize};
@@ -71,89 +72,27 @@ impl WireGuard {
             change.with_pre_down(node.pre_down);
         }
     }
-
-    pub(super) fn to_server_configuration_str(&self) -> anyhow::Result<Option<String>> {
-        if let Some(node_server) = self.node_server.clone() {
-            let mut lines = String::new();
-            // node name
-            lines.push_str(&format!("# {}\n", node_server.name()));
-
-            let interface = Interface::from(node_server);
-
-            // Interface section begins
-            lines.push_str("[Interface]\n");
-
-            // Interface Private key
-            lines.push_str(&format!("PrivateKey = {}\n", interface.private_key()?));
-
-            // Interface address
-            lines.push_str(&format!("Address = {}\n", interface.address()?));
-
-            // Interface listen port
-            lines.push_str(&format!("ListenPort = {}\n", interface.listen_port()?));
-
-            // MTU, if any
-            if let Some(mtu) = interface.mtu() {
-                lines.push_str(&format!("MTU = {}\n", mtu));
-            }
-
-            // PreUp, if any
-            if let Some(pre_up) = interface.pre_up() {
-                lines.push_str(&format!("PreUp = {}\n", pre_up));
-            }
-
-            // PostUp, if any
-            if let Some(post_up) = interface.post_up() {
-                lines.push_str(&format!("PostUp = {}\n", post_up));
-            }
-
-            // PreDown, if any
-            if let Some(pre_down) = interface.pre_down() {
-                lines.push_str(&format!("PreDown = {}\n", pre_down));
-            }
-
-            // PostDown, if any
-            if let Some(post_down) = interface.post_down() {
-                lines.push_str(&format!("PostDown = {}\n", post_down));
-            }
-
-            if let Some(node_list) = self.node_list.clone() {
-                for node_peer in node_list {
-                    // node name
-                    lines.push_str(&format!("# {}\n", node_peer.name()));
-
-                    let peer = Peer::from(node_peer);
-
-                    // Peer section begins
-                    lines.push_str("[Peer]\n");
-
-                    // Peer Public key
-                    lines.push_str(&format!("PublicKey = {}\n", peer.public_key()?));
-
-                    // Peer Allowed IPs
-                    lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
-
-                    // Keepalive
-                    if let Some(keepalive) = peer.persistent_keepalive() {
-                        lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
-                    }
-                }
-            }
-            return Ok(Some(lines));
-        }
-        Ok(None)
-    }
-
-    pub(super) fn to_peer_configuration_str(&self) -> Option<String> {
-        if let Some(_node_server) = self.node_server.clone() {}
-        None
-    }
 }
 
 #[async_trait::async_trait]
 impl RW for WireGuard {
     async fn get(&mut self) -> anyhow::Result<Node> {
-        Ok(self.node_server.get_or_insert_with(Node::default).clone())
+        return match &self.node_server {
+            None => Err(anyhow::anyhow!("node server does not exits")),
+            Some(node) => Ok(node.deref().clone()),
+        };
+    }
+
+    async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node> {
+        let node_list = self.node_list.get_or_insert_with(Vec::new);
+        if let Some(index) = node_list.iter().position(|n| n.name().eq(node_name)) {
+            let node = node_list.get(index).unwrap();
+            return Ok(node.clone());
+        }
+        Err(anyhow::anyhow!(format!(
+            "node does not exist: {}",
+            node_name
+        )))
     }
 
     async fn set(&mut self, node: Node) -> anyhow::Result<()> {
@@ -167,14 +106,14 @@ impl RW for WireGuard {
 
     async fn push(&mut self, node: Node) -> anyhow::Result<()> {
         if self.node_server.is_none() {
-            return Err(anyhow::anyhow!("Please add Server Peer Node first"));
+            return Err(anyhow::anyhow!("please add Server Peer Node first"));
         }
-        let peer_list = self.node_list.get_or_insert_with(Vec::new);
+        let node_list = self.node_list.get_or_insert_with(Vec::new);
         if let Some(name) = &node.name {
-            if let Some(index) = peer_list.iter().position(|n| n.name().eq(name)) {
-                Self::map_set(&mut peer_list[index], node);
+            if let Some(index) = node_list.iter().position(|n| n.name().eq(name)) {
+                Self::map_set(&mut node_list[index], node);
             } else {
-                peer_list.push(node)
+                node_list.push(node);
             }
         }
         Ok(())
@@ -196,28 +135,27 @@ impl RW for WireGuard {
     }
 
     async fn remove_by_name(&mut self, node_name: &str) -> anyhow::Result<()> {
-        if let Some(peer_list) = self.node_list.as_mut() {
-            if let Some(index) = peer_list.iter().position(|n| n.name().eq(node_name)) {
-                peer_list.remove(index);
-            } else {
-                return Err(anyhow::anyhow!(format!(
-                    "There is no node named '{}'",
-                    node_name
-                )));
+        if let Some(node_list) = self.node_list.as_mut() {
+            if let Some(index) = node_list.iter().position(|n| n.name().eq(node_name)) {
+                node_list.remove(index);
+                return Ok(());
             }
         }
-        Ok(())
+        Err(anyhow::anyhow!(format!(
+            "there is no node named '{}'",
+            node_name
+        )))
     }
 
     async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()> {
-        if let Some(peer_list) = self.node_list.as_mut() {
-            if index >= peer_list.len() {
+        if let Some(node_list) = self.node_list.as_mut() {
+            if index >= node_list.len() {
                 return Err(anyhow::anyhow!(format!(
                     "index data {} out of bounds",
                     index
                 )));
             }
-            peer_list.remove(index);
+            node_list.remove(index);
         }
         Ok(())
     }
@@ -229,8 +167,8 @@ impl RW for WireGuard {
     }
 
     async fn exist(&self, name: String) -> bool {
-        if let Some(peer_list) = self.node_list.as_ref() {
-            return peer_list
+        if let Some(node_list) = self.node_list.as_ref() {
+            return node_list
                 .iter()
                 .map(|x| x.name())
                 .collect::<Vec<&str>>()

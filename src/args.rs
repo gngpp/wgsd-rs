@@ -52,6 +52,9 @@ pub(crate) enum SubCommands {
     /// Revoke WireGuard existing peer
     RevokePeer,
 
+    /// Print WireGuard configuration
+    PrintPeer,
+
     /// WireGuard Configuration
     #[command(arg_required_else_help = true)]
     Config(Config),

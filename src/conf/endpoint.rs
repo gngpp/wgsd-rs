@@ -42,8 +42,8 @@ impl Interface {
             .context("private key is undefined")
     }
 
-    pub fn listen_port(&self) -> anyhow::Result<u16> {
-        self.listen_port.context("listen port is undefined")
+    pub fn listen_port(&self) -> Option<u16> {
+        self.listen_port
     }
 
     pub fn mtu(&self) -> Option<&u16> {

@@ -34,6 +34,10 @@ async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
             handler::subcommand_revoke_peer_handler(wgsdc.config).await?
         }
 
+        Some(SubCommands::PrintPeer) => {
+            handler::subcommand_print_peer_handler(wgsdc.config).await?;
+        }
+
         Some(SubCommands::Config(conf)) => {
             handler::subcommand_config_handler(conf, wgsdc.config).await?
         }
