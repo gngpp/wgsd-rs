@@ -104,10 +104,11 @@ impl Configuration {
         // node
         let node = self.get_by_name(name).await?;
         // node server
-        let mut node_server = self.get().await?;
+        let mut node_relay = self.get().await?;
 
         // convert
-        node_server.allowed_ips = node.endpoint_allowed_ips.clone();
+        node_relay.allowed_ips = node.endpoint_allowed_ips.clone();
+        node_relay.persistent_keepalive = node.persistent_keepalive;
 
         let mut lines = String::new();
         // node name
@@ -156,9 +157,9 @@ impl Configuration {
 
         // ------------------------------Peer----------------------------------
         // Peer name
-        lines.push_str(&format!("# {}\n", node_server.name()));
+        lines.push_str(&format!("# {}\n", node_relay.name()));
 
-        let peer = Peer::from(node_server);
+        let peer = Peer::from(node_relay);
 
         // Peer section begins
         lines.push_str("[Peer]\n");
@@ -246,7 +247,7 @@ impl Configuration {
             // Peer Allowed IPs
             lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
 
-            // Keepalive
+            // Peer Persistent Keepalive
             if let Some(keepalive) = peer.persistent_keepalive() {
                 lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
             }
