@@ -1,7 +1,7 @@
 use crate::conf::endpoint::Node;
 use std::ops::Deref;
 
-use crate::conf::RW;
+use crate::conf::NodeOpt;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -75,8 +75,8 @@ impl WireGuard {
 }
 
 #[async_trait::async_trait]
-impl RW for WireGuard {
-    async fn get(&mut self) -> anyhow::Result<Node> {
+impl NodeOpt for WireGuard {
+    async fn get_relay(&mut self) -> anyhow::Result<Node> {
         return match &self.node_server {
             None => Err(anyhow::anyhow!("node server does not exits")),
             Some(node) => Ok(node.deref().clone()),
@@ -95,7 +95,7 @@ impl RW for WireGuard {
         )))
     }
 
-    async fn set(&mut self, node: Node) -> anyhow::Result<()> {
+    async fn set_relay(&mut self, node: Node) -> anyhow::Result<()> {
         if let Some(ref mut n) = self.node_server {
             Self::map_set(n, node)
         } else {

@@ -1,7 +1,7 @@
 use crate::args;
 
 use crate::conf::endpoint::Node;
-use crate::conf::{AsyncTryFrom, Configuration, RW};
+use crate::conf::{AsyncTryFrom, Configuration, NodeOpt};
 use clap::ArgMatches;
 
 use anyhow::Context;
@@ -16,9 +16,9 @@ pub(crate) async fn subcommand_add_server_handler(
     _config: String,
 ) -> anyhow::Result<()> {
     let mut configuration = Configuration::new(_config).await?;
-    // set peer node
-    configuration.set(Node::from(_add_server)).await?;
-    configuration.print_std().await
+    configuration.set_relay(Node::from(_add_server)).await?;
+    let content = configuration.get_peer_relay_config().await?;
+    print_and_qrcode(content)
 }
 
 pub(crate) async fn subcommand_add_peer_handler(
@@ -26,8 +26,11 @@ pub(crate) async fn subcommand_add_peer_handler(
     _config: String,
 ) -> anyhow::Result<()> {
     let mut configuration = <Configuration as AsyncTryFrom<String>>::try_from(_config).await?;
+    let name = String::from(&_add_peer.name);
     configuration.push(Node::from(_add_peer)).await?;
-    configuration.print_std().await
+    let content = configuration.get_peer_config(&name).await?;
+    // print to std and generation qrcode
+    print_and_qrcode(content)
 }
 
 pub(crate) async fn subcommand_revoke_peer_handler(_config: String) -> anyhow::Result<()> {
@@ -112,9 +115,7 @@ pub(crate) async fn subcommand_print_peer_handler(_config: String) -> anyhow::Re
                     match option {
                         Ok(node_name) => {
                             let string = configuration.get_peer_config(node_name).await?;
-                            println!("generated configuration:\n{}\n", string);
-                            qr2term::print_qr(string)
-                                .context("Failed to generate QRCode configuration")?;
+                            print_and_qrcode(string)?;
                         }
                         Err(_) => {}
                     }
@@ -150,6 +151,15 @@ pub(crate) async fn subcommand_config_handler(
     }
     drop(configuration);
     Ok(())
+}
+
+fn print_and_qrcode(string: String) -> anyhow::Result<()> {
+    let repeat_bounds = "-".repeat(70);
+    println!(
+        "generated configuration:\n{}\n{}\n{}\n",
+        repeat_bounds, string, repeat_bounds
+    );
+    qr2term::print_qr(string).context("Failed to generate QRCode configuration")
 }
 
 pub(crate) fn command_client_handler(arg: &ArgMatches) -> anyhow::Result<()> {

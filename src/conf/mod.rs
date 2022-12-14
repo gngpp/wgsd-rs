@@ -14,15 +14,15 @@ pub mod endpoint;
 mod model;
 
 #[async_trait]
-pub trait RW: Sized {
-    // get node server
-    async fn get(&mut self) -> anyhow::Result<Node>;
+pub trait NodeOpt: Sized {
+    // get node relay
+    async fn get_relay(&mut self) -> anyhow::Result<Node>;
 
     // get node by name(exclude node server)
     async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node>;
 
     // set node server
-    async fn set(&mut self, node: Node) -> anyhow::Result<()>;
+    async fn set_relay(&mut self, node: Node) -> anyhow::Result<()>;
 
     // push node to list
     async fn push(&mut self, node: Node) -> anyhow::Result<()>;
@@ -103,8 +103,8 @@ impl Configuration {
     pub async fn get_peer_config(&mut self, name: &str) -> anyhow::Result<String> {
         // node
         let node = self.get_by_name(name).await?;
-        // node server
-        let mut node_relay = self.get().await?;
+        // node relay
+        let mut node_relay = self.get_relay().await?;
 
         // convert
         node_relay.allowed_ips = node.endpoint_allowed_ips.clone();
@@ -183,9 +183,9 @@ impl Configuration {
         Ok(lines)
     }
 
-    // node server configuration string
+    // node relay configuration string
     pub async fn get_peer_relay_config(&mut self) -> anyhow::Result<String> {
-        let node_relay = self.get().await?;
+        let node_relay = self.get_relay().await?;
         let mut lines = String::new();
         // node name
         lines.push_str(&format!("# {}\n", node_relay.name()));
@@ -307,9 +307,9 @@ impl AsyncTryFrom<String> for Configuration {
 }
 
 #[async_trait]
-impl RW for Configuration {
-    async fn get(&mut self) -> anyhow::Result<Node> {
-        self.wireguard.lock().await.get().await
+impl NodeOpt for Configuration {
+    async fn get_relay(&mut self) -> anyhow::Result<Node> {
+        self.wireguard.lock().await.get_relay().await
     }
 
     async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node> {
@@ -317,9 +317,9 @@ impl RW for Configuration {
         wg.get_by_name(node_name).await
     }
 
-    async fn set(&mut self, node: Node) -> anyhow::Result<()> {
+    async fn set_relay(&mut self, node: Node) -> anyhow::Result<()> {
         let mut wg = self.wireguard.lock().await;
-        wg.set(node).await?;
+        wg.set_relay(node).await?;
         Configuration::write(&self.path, &wg).await
     }
 
@@ -359,7 +359,7 @@ impl RW for Configuration {
 
     async fn drop(&mut self) -> anyhow::Result<()> {
         let mut wg = self.wireguard.lock().await;
-        RW::drop(wg.deref_mut()).await?;
+        NodeOpt::drop(wg.deref_mut()).await?;
         tokio::fs::remove_file(&self.path).await.context(format!(
             "Delete configuration file: {}, an error occurred",
             self.path.display()
