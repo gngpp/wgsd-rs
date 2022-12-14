@@ -4,6 +4,7 @@ use crate::conf::endpoint::Node;
 use crate::conf::model::WireGuard;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
+use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -22,14 +23,20 @@ pub trait RW {
     // push node to list
     async fn push(&mut self, node: Node) -> anyhow::Result<()>;
 
-    // remove node from list
-    async fn remove_for_name(&mut self, node_name: &str) -> anyhow::Result<()>;
-
-    // remove node from list
-    async fn remove(&mut self, index: usize) -> anyhow::Result<()>;
-
     // get from node list
     async fn list(&mut self) -> anyhow::Result<Vec<Node>>;
+
+    // remove all from list
+    async fn remove_all(&mut self) -> anyhow::Result<()>;
+
+    // remove node from list
+    async fn remove_by_name(&mut self, node_name: &str) -> anyhow::Result<()>;
+
+    // remove node from list
+    async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()>;
+
+    // drop
+    async fn drop(&mut self) -> anyhow::Result<()>;
 
     // exist node(exclude node server)
     async fn exist(&self, name: String) -> bool;
@@ -125,20 +132,35 @@ impl RW for Configuration {
         Configuration::write(&self.path, &wg).await
     }
 
-    async fn remove_for_name(&mut self, node_name: &str) -> anyhow::Result<()> {
-        let mut wg = self.wireguard.lock().await;
-        wg.remove_for_name(node_name).await?;
-        Configuration::write(&self.path, &wg).await
-    }
-
-    async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
-        let mut wg = self.wireguard.lock().await;
-        wg.remove(index).await?;
-        Configuration::write(&self.path, &wg).await
-    }
-
     async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
         self.wireguard.lock().await.list().await
+    }
+
+    async fn remove_all(&mut self) -> anyhow::Result<()> {
+        let mut wg = self.wireguard.lock().await;
+        wg.remove_all().await?;
+        Configuration::write(&self.path, &wg).await
+    }
+
+    async fn remove_by_name(&mut self, node_name: &str) -> anyhow::Result<()> {
+        let mut wg = self.wireguard.lock().await;
+        wg.remove_by_name(node_name).await?;
+        Configuration::write(&self.path, &wg).await
+    }
+
+    async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()> {
+        let mut wg = self.wireguard.lock().await;
+        wg.remove_by_index(index).await?;
+        Configuration::write(&self.path, &wg).await
+    }
+
+    async fn drop(&mut self) -> anyhow::Result<()> {
+        let mut wg = self.wireguard.lock().await;
+        RW::drop(wg.deref_mut()).await?;
+        tokio::fs::remove_file(&self.path).await.context(format!(
+            "Delete configuration file: {}, an error occurred",
+            self.path.display()
+        ))
     }
 
     async fn exist(&self, name: String) -> bool {

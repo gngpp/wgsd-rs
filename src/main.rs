@@ -1,3 +1,5 @@
+extern crate core;
+
 use crate::args::SubCommands;
 use anyhow::anyhow;
 

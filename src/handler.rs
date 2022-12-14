@@ -30,64 +30,91 @@ pub(crate) async fn subcommand_revoke_peer_handler(config: String) -> anyhow::Re
     // read configuration
     let node_list = configuration.list().await?;
     let mut modify = false;
-    let format_print = |x: usize| {
-        if x % 2 == 0 {
-            "/"
-        } else {
-            "\\"
-        }
-    };
-    println!("You can enter a serial number or a name, or enters the 'exit' command");
-    node_list
-        .iter()
-        .enumerate()
-        .map(|(i, v)| format!("{} {} {}", i, format_print(i), v.name()))
-        .for_each(|v| println!("{}", v));
-
+    let format_print = |x: usize| if x % 2 == 0 { "/" } else { "\\" };
     // Loops until the user enters the "exit" command
     let mut stdout = tokio::io::stdout();
-    loop {
-        stdout.write_all(b"revoke> ").await?;
-        stdout.flush().await?;
+    stdout
+        .write_all(b"You can enter a serial number select the revoke peer type, or enters the 'exit' command.\n")
+        .await?;
+    stdout.flush().await?;
 
-        let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
-        let input = stdin.next_line().await?.unwrap();
-        // Perform actions based on user input
-        match input.parse::<usize>() {
-            Ok(index) => {
-                match configuration.remove(index).await {
-                    Ok(_) => {
-                        modify = true;
-                        break;
-                    }
-                    Err(err) => {
-                        println!("error: {}", err.to_string())
-                    }
-                }
-            }
-            Err(_) => {
-                match input.as_str() {
-                    "exit" => {
-                        // exit shell
-                        break;
-                    }
-                    _ => match configuration.remove_for_name(input.as_str()).await {
+    ["peer", "peer server"]
+        .iter()
+        .enumerate()
+        .for_each(|(i, v)| println!("{} {} {}", i, format_print(i), v));
+
+    stdout.write_all(b"revoke> ").await?;
+    stdout.flush().await?;
+
+    // stdin input command
+    let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
+    // command
+    let input = stdin.next_line().await?.unwrap();
+
+    match input.as_str() {
+        "exit" => {
+            return Ok(());
+        }
+        "0" => {
+            println!("You can enter a serial number or a name, or enters the 'exit' command.");
+            node_list
+                .iter()
+                .enumerate()
+                .for_each(|(i, v)| println!("{} {} {}", i, format_print(i), v.name()));
+
+            loop {
+                stdout.write_all(b"revoke> ").await?;
+                stdout.flush().await?;
+
+                let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
+                let input = stdin.next_line().await?.unwrap();
+                // Perform actions based on user input
+                match input.parse::<usize>() {
+                    Ok(index) => match configuration.remove_by_index(index).await {
                         Ok(_) => {
                             modify = true;
                             break;
                         }
                         Err(err) => {
-                            println!("error: {}", err.to_string())
+                            println!("Error: {}", err.to_string())
                         }
                     },
+                    Err(_) => {
+                        match input.as_str() {
+                            "exit" => {
+                                // exit shell
+                                break;
+                            }
+                            _ => match configuration.remove_by_name(input.as_str()).await {
+                                Ok(_) => {
+                                    modify = true;
+                                    break;
+                                }
+                                Err(err) => {
+                                    println!("Error: {}", err.to_string())
+                                }
+                            },
+                        }
+                    }
                 }
             }
+
+            if modify {
+                configuration.print_std().await?;
+            }
+        }
+        "1" => {
+            configuration.drop().await?;
+        }
+        _ => {
+            println!("Unknown command: {}", input)
         }
     }
 
-    if modify {
-        configuration.print_std().await?;
-    }
+    drop(stdin);
+    drop(stdout);
+    drop(node_list);
+    drop(configuration);
 
     Ok(())
 }

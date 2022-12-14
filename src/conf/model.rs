@@ -179,7 +179,18 @@ impl super::RW for WireGuard {
         Ok(())
     }
 
-    async fn remove_for_name(&mut self, node_name: &str) -> anyhow::Result<()> {
+    async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
+        Ok(self.node_list.get_or_insert_with(Vec::new).clone())
+    }
+
+    async fn remove_all(&mut self) -> anyhow::Result<()> {
+        if let Some(node_list) = self.node_list.as_mut() {
+            node_list.clear();
+        }
+        Ok(())
+    }
+
+    async fn remove_by_name(&mut self, node_name: &str) -> anyhow::Result<()> {
         if let Some(peer_list) = self.node_list.as_mut() {
             if let Some(index) = peer_list.iter().position(|n| n.name().eq(node_name)) {
                 peer_list.remove(index);
@@ -193,7 +204,7 @@ impl super::RW for WireGuard {
         Ok(())
     }
 
-    async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
+    async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()> {
         if let Some(peer_list) = self.node_list.as_mut() {
             if index >= peer_list.len() {
                 return Err(anyhow::anyhow!(format!(
@@ -206,8 +217,10 @@ impl super::RW for WireGuard {
         Ok(())
     }
 
-    async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
-        Ok(self.node_list.get_or_insert_with(Vec::new).clone())
+    async fn drop(&mut self) -> anyhow::Result<()> {
+        self.node_server = None;
+        self.node_list = None;
+        Ok(())
     }
 
     async fn exist(&self, name: String) -> bool {
