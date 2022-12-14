@@ -26,6 +26,9 @@ pub trait RW {
     // get from node list
     async fn list(&mut self) -> anyhow::Result<Vec<Node>>;
 
+    // clear node(include node server)
+    async fn clear(&mut self) -> anyhow::Result<()>;
+
     // remove all from list
     async fn remove_all(&mut self) -> anyhow::Result<()>;
 
@@ -134,6 +137,12 @@ impl RW for Configuration {
 
     async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
         self.wireguard.lock().await.list().await
+    }
+
+    async fn clear(&mut self) -> anyhow::Result<()> {
+        let mut wg = self.wireguard.lock().await;
+        wg.clear().await?;
+        Configuration::write(&self.path, &wg).await
     }
 
     async fn remove_all(&mut self) -> anyhow::Result<()> {

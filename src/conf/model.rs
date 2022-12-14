@@ -1,5 +1,6 @@
 use crate::conf::endpoint::{Interface, Node, Peer};
 
+use crate::conf::RW;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -150,7 +151,7 @@ impl WireGuard {
 }
 
 #[async_trait::async_trait]
-impl super::RW for WireGuard {
+impl RW for WireGuard {
     async fn get(&mut self) -> anyhow::Result<Node> {
         Ok(self.node_server.get_or_insert_with(Node::default).clone())
     }
@@ -181,6 +182,10 @@ impl super::RW for WireGuard {
 
     async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
         Ok(self.node_list.get_or_insert_with(Vec::new).clone())
+    }
+
+    async fn clear(&mut self) -> anyhow::Result<()> {
+        self.drop().await
     }
 
     async fn remove_all(&mut self) -> anyhow::Result<()> {

@@ -104,7 +104,7 @@ pub(crate) async fn subcommand_revoke_peer_handler(config: String) -> anyhow::Re
             }
         }
         "1" => {
-            configuration.drop().await?;
+            configuration.clear().await?;
         }
         _ => {
             println!("Unknown command: {}", input)
