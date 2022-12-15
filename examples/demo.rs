@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use std::sync::Arc;
 use anyhow::{anyhow, Context};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 struct Configuration {
@@ -11,11 +11,10 @@ struct Configuration {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct WireGuard {
-    value: Option<String>
+    value: Option<String>,
 }
 
 impl Configuration {
-
     //noinspection DuplicatedCode
     async fn init(conf: String) -> anyhow::Result<PathBuf> {
         // example: wg0
@@ -67,7 +66,6 @@ impl Configuration {
         };
         Ok(configuration)
     }
-
 }
 
 const DEFAULT_PATH: &str = "/etc/wireguard/wgsdc";
@@ -78,21 +76,21 @@ async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
     const PEER: &str = "peer";
     const PEER_SERVER: &str = "peer-server";
     let node_type_option = vec![PEER, PEER_SERVER];
-    let node_type_select = inquire::Select::new("Select the peer node type that needs to be revoked.", node_type_option).prompt();
+    let node_type_select = inquire::Select::new(
+        "Select the peer node type that needs to be revoked.",
+        node_type_option,
+    )
+    .prompt();
     println!("start");
     match node_type_select {
-        Ok(node_type) => {
-            match node_type {
-                PEER => {
-                    let _configuration = Configuration::new("test".to_string()).await?;
-                    println!("await")
-                }
-                PEER_SERVER => {
-
-                }
-                _ => {}
+        Ok(node_type) => match node_type {
+            PEER => {
+                let _configuration = Configuration::new("test".to_string()).await?;
+                println!("await")
             }
-        }
+            PEER_SERVER => {}
+            _ => {}
+        },
         Err(_) => {}
     }
     Ok(())

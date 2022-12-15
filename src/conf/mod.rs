@@ -279,7 +279,6 @@ impl Configuration {
         return Ok(lines);
     }
 
-
     pub async fn new(conf: String) -> anyhow::Result<Self> {
         let path = Self::init(conf)
             .await
