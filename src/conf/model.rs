@@ -92,13 +92,16 @@ impl NodeOpt for WireGuard {
 
         if node.relay.not() {
             // no has relay node
-            if node_list.iter().any(|n| n.relay ).not() {
+            if node_list.iter().any(|n| n.relay).not() {
                 return Err(anyhow::anyhow!("please add peer relay node first"));
             }
         }
 
         // duplicate name
-        let repeat_name_count = node_list.iter().filter(|n| n.name().eq(node.name())).count();
+        let repeat_name_count = node_list
+            .iter()
+            .filter(|n| n.name().eq(node.name()))
+            .count();
         if repeat_name_count > 1 {
             return Err(anyhow::anyhow!(format!(
                 "Duplicate node {} name",
@@ -119,7 +122,9 @@ impl NodeOpt for WireGuard {
     }
 
     async fn list_by_relay(&mut self, relay: bool) -> anyhow::Result<Vec<Node>> {
-        let vec = self.node_list.get_or_insert_with(Vec::new)
+        let vec = self
+            .node_list
+            .get_or_insert_with(Vec::new)
             .iter()
             .filter(|x| x.relay.eq(&relay))
             .map(|v| v.clone())

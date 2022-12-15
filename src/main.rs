@@ -3,8 +3,8 @@ extern crate core;
 use crate::args::SubCommands;
 use anyhow::anyhow;
 
-mod conf;
 mod args;
+mod conf;
 mod handler;
 mod parser;
 mod wg;

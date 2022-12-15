@@ -83,6 +83,25 @@ impl Configuration {
         Ok(())
     }
 
+    async fn read(path: &PathBuf) -> anyhow::Result<WireGuard> {
+        crate::sudo()?;
+        log::debug!("ready to read configuration file: {}", path.display());
+        let string = tokio::fs::read_to_string(path).await.context(format!(
+            "Error reading {} configuration file",
+            path.display()
+        ))?;
+        serde_yaml::from_str(string.as_str()).context("Serialized read configuration failed")
+    }
+
+    async fn write(path: &PathBuf, wg: &WireGuard) -> anyhow::Result<()> {
+        crate::sudo()?;
+        log::debug!("ready to write configuration files to: {}", path.display());
+        let str = serde_yaml::to_string(wg).context("Serialized write configuration failed")?;
+        tokio::fs::write(path, str)
+            .await
+            .context(format!("Error writing to {} config file", path.display()))
+    }
+
     // Non-relay node configuration
     pub async fn get_peer_config(&mut self, name: &str) -> anyhow::Result<String> {
         // node
@@ -260,24 +279,6 @@ impl Configuration {
         return Ok(lines);
     }
 
-    async fn read(path: &PathBuf) -> anyhow::Result<WireGuard> {
-        crate::sudo()?;
-        log::debug!("ready to read configuration file: {}", path.display());
-        let string = tokio::fs::read_to_string(path).await.context(format!(
-            "Error reading {} configuration file",
-            path.display()
-        ))?;
-        serde_yaml::from_str(string.as_str()).context("Serialized read configuration failed")
-    }
-
-    async fn write(path: &PathBuf, wg: &WireGuard) -> anyhow::Result<()> {
-        crate::sudo()?;
-        log::debug!("ready to write configuration files to: {}", path.display());
-        let str = serde_yaml::to_string(wg).context("Serialized write configuration failed")?;
-        tokio::fs::write(path, str)
-            .await
-            .context(format!("Error writing to {} config file", path.display()))
-    }
 
     pub async fn new(conf: String) -> anyhow::Result<Self> {
         let path = Self::init(conf)
