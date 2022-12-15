@@ -1,12 +1,11 @@
 use crate::conf::endpoint::Node;
-use std::ops::Deref;
+use std::ops::{Deref, Not};
 
 use crate::conf::NodeOpt;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(super) struct WireGuard {
-    node_server: Option<Node>,
     node_list: Option<Vec<Node>>,
 }
 
@@ -76,17 +75,10 @@ impl WireGuard {
 
 #[async_trait::async_trait]
 impl NodeOpt for WireGuard {
-    async fn get_relay(&mut self) -> anyhow::Result<Node> {
-        return match &self.node_server {
-            None => Err(anyhow::anyhow!("node server does not exits")),
-            Some(node) => Ok(node.deref().clone()),
-        };
-    }
-
     async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node> {
         let node_list = self.node_list.get_or_insert_with(Vec::new);
         if let Some(index) = node_list.iter().position(|n| n.name().eq(node_name)) {
-            let node = node_list.get(index).unwrap();
+            let node = node_list.get(index).expect("array out of bounds");
             return Ok(node.clone());
         }
         Err(anyhow::anyhow!(format!(
@@ -95,36 +87,48 @@ impl NodeOpt for WireGuard {
         )))
     }
 
-    async fn set_relay(&mut self, node: Node) -> anyhow::Result<()> {
-        if let Some(ref mut n) = self.node_server {
-            Self::map_set(n, node)
+    async fn push(&mut self, node: Node) -> anyhow::Result<()> {
+        let mut node_list = self.node_list.get_or_insert_with(Vec::new);
+
+        if node.relay.not() {
+            // no has relay node
+            if node_list.iter().any(|n| n.relay ).not() {
+                return Err(anyhow::anyhow!("please add peer relay node first"));
+            }
+        }
+
+        // duplicate name
+        let repeat_name_count = node_list.iter().filter(|n| n.name().eq(node.name())).count();
+        if repeat_name_count > 1 {
+            return Err(anyhow::anyhow!(format!(
+                "Duplicate node {} name",
+                node.name()
+            )));
+        }
+
+        if let Some(index) = node_list
+            .iter()
+            // node eq
+            .position(|n| n.name().eq(node.name()) && n.relay.eq(&node.relay))
+        {
+            Self::map_set(&mut node_list[index], node);
         } else {
-            self.node_server = Some(node)
+            node_list.push(node);
         }
         Ok(())
     }
 
-    async fn push(&mut self, node: Node) -> anyhow::Result<()> {
-        if self.node_server.is_none() {
-            return Err(anyhow::anyhow!("please add Server Peer Node first"));
-        }
-        let node_list = self.node_list.get_or_insert_with(Vec::new);
-        if let Some(name) = &node.name {
-            if let Some(index) = node_list.iter().position(|n| n.name().eq(name)) {
-                Self::map_set(&mut node_list[index], node);
-            } else {
-                node_list.push(node);
-            }
-        }
-        Ok(())
+    async fn list_by_relay(&mut self, relay: bool) -> anyhow::Result<Vec<Node>> {
+        let vec = self.node_list.get_or_insert_with(Vec::new)
+            .iter()
+            .filter(|x| x.relay.eq(&relay))
+            .map(|v| v.clone())
+            .collect::<Vec<Node>>();
+        Ok(vec)
     }
 
     async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
         Ok(self.node_list.get_or_insert_with(Vec::new).clone())
-    }
-
-    async fn clear(&mut self) -> anyhow::Result<()> {
-        self.drop().await
     }
 
     async fn remove_all(&mut self) -> anyhow::Result<()> {
@@ -147,7 +151,7 @@ impl NodeOpt for WireGuard {
         )))
     }
 
-    async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()> {
+    async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
         if let Some(node_list) = self.node_list.as_mut() {
             if index >= node_list.len() {
                 return Err(anyhow::anyhow!(format!(
@@ -160,20 +164,8 @@ impl NodeOpt for WireGuard {
         Ok(())
     }
 
-    async fn drop(&mut self) -> anyhow::Result<()> {
-        self.node_server = None;
+    async fn clear(&mut self) -> anyhow::Result<()> {
         self.node_list = None;
         Ok(())
-    }
-
-    async fn exist(&self, name: String) -> bool {
-        if let Some(node_list) = self.node_list.as_ref() {
-            return node_list
-                .iter()
-                .map(|x| x.name())
-                .collect::<Vec<&str>>()
-                .contains(&name.as_str());
-        }
-        false
     }
 }

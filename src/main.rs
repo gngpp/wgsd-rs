@@ -3,11 +3,11 @@ extern crate core;
 use crate::args::SubCommands;
 use anyhow::anyhow;
 
+mod conf;
 mod args;
-pub mod conf;
 mod handler;
-pub mod parser;
-pub mod wg;
+mod parser;
+mod wg;
 
 pub const DEFAULT_INTERFACE_ADDRESS: &str = "10.66.66.1/24, fd42:42:42::1/64";
 pub const DEFAULT_INTERFACE_LISTEN_PORT: &str = "51820";

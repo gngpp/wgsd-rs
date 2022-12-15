@@ -15,38 +15,22 @@ mod model;
 
 #[async_trait]
 pub trait NodeOpt: Sized {
-    // get node relay
-    async fn get_relay(&mut self) -> anyhow::Result<Node>;
-
-    // get node by name(exclude node server)
+    // get node by name
     async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node>;
-
-    // set node server
-    async fn set_relay(&mut self, node: Node) -> anyhow::Result<()>;
-
     // push node to list
     async fn push(&mut self, node: Node) -> anyhow::Result<()>;
-
+    // get from node list(by relay)
+    async fn list_by_relay(&mut self, relay: bool) -> anyhow::Result<Vec<Node>>;
     // get from node list
     async fn list(&mut self) -> anyhow::Result<Vec<Node>>;
-
-    // clear node(include node server)
-    async fn clear(&mut self) -> anyhow::Result<()>;
-
-    // remove all from list
+    // remove all from node list
     async fn remove_all(&mut self) -> anyhow::Result<()>;
-
     // remove node from list
     async fn remove_by_name(&mut self, node_name: &str) -> anyhow::Result<()>;
-
     // remove node from list
-    async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()>;
-
-    // drop
-    async fn drop(&mut self) -> anyhow::Result<()>;
-
-    // exist node(exclude node server)
-    async fn exist(&self, name: String) -> bool;
+    async fn remove(&mut self, index: usize) -> anyhow::Result<()>;
+    // clear
+    async fn clear(&mut self) -> anyhow::Result<()>;
 }
 
 #[async_trait]
@@ -99,16 +83,24 @@ impl Configuration {
         Ok(())
     }
 
-    // node configuration string
+    // Non-relay node configuration
     pub async fn get_peer_config(&mut self, name: &str) -> anyhow::Result<String> {
         // node
         let node = self.get_by_name(name).await?;
-        // node relay
-        let mut node_relay = self.get_relay().await?;
+
+        // is relay node
+        if node.relay {
+            return Err(anyhow::anyhow!("This function does not support"));
+        }
+
+        // node relay list
+        let mut node_relay_list = self.list_by_relay(node.relay).await?;
 
         // convert
-        node_relay.allowed_ips = node.endpoint_allowed_ips.clone();
-        node_relay.persistent_keepalive = node.persistent_keepalive;
+        for v in &mut node_relay_list {
+            // v.allowed_ips = node.endpoint_allowed_ips.clone();
+            v.persistent_keepalive = node.persistent_keepalive;
+        }
 
         let mut lines = String::new();
         // node name
@@ -156,41 +148,54 @@ impl Configuration {
         }
 
         // ------------------------------Peer----------------------------------
-        // Peer name
-        lines.push_str(&format!("# {}\n", node_relay.name()));
+        for node in node_relay_list {
+            // Peer name
+            lines.push_str(&format!("# {}\n", node.name()));
 
-        let peer = Peer::from(node_relay);
+            let peer = Peer::from(node);
 
-        // Peer section begins
-        lines.push_str("[Peer]\n");
+            // Peer section begins
+            lines.push_str("[Peer]\n");
 
-        // Peer Public key
-        lines.push_str(&format!("PublicKey = {}\n", peer.public_key()?));
+            // Peer Public key
+            lines.push_str(&format!("PublicKey = {}\n", peer.public_key()?));
 
-        // Peer Allowed IPs
-        lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
+            // Peer Allowed IPs
+            lines.push_str(&format!("AllowedIPs = {}\n", peer.allowed_ips()?));
 
-        // Peer Persistent Keepalive, if any
-        if let Some(keepalive) = peer.persistent_keepalive() {
-            lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
-        }
+            // Peer Persistent Keepalive, if any
+            if let Some(keepalive) = peer.persistent_keepalive() {
+                lines.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
+            }
 
-        // Peer Endpoint, if any
-        if let Some(endpoint) = peer.endpoint() {
-            lines.push_str(&format!("Endpoint = {}\n", endpoint));
+            // Peer Endpoint, if any
+            if let Some(endpoint) = peer.endpoint() {
+                lines.push_str(&format!("Endpoint = {}\n", endpoint));
+            }
         }
 
         Ok(lines)
     }
 
-    // node relay configuration string
-    pub async fn get_peer_relay_config(&mut self) -> anyhow::Result<String> {
-        let node_relay = self.get_relay().await?;
+    // Relay node configuration
+    pub async fn get_relay_peer_config(&mut self, node_name: &str) -> anyhow::Result<String> {
+        // get node
+        let config_relay_node = self.get_by_name(node_name).await?;
+
+        // convert to peer
+        let node_list = self
+            .list()
+            .await?
+            .iter()
+            .filter(|n| n.name().ne(node_name))
+            .map(|v| v.clone())
+            .collect::<Vec<Node>>();
+
         let mut lines = String::new();
         // node name
-        lines.push_str(&format!("# {}\n", node_relay.name()));
+        lines.push_str(&format!("# {}\n", config_relay_node.name()));
 
-        let interface = Interface::from(node_relay);
+        let interface = Interface::from(config_relay_node);
 
         // Interface section begins
         lines.push_str("[Interface]\n");
@@ -232,7 +237,7 @@ impl Configuration {
         }
 
         // ------------------------------Peer----------------------------------
-        for node in self.list().await? {
+        for node in node_list {
             // node name
             lines.push_str(&format!("# {}\n", node.name()));
 
@@ -308,19 +313,9 @@ impl AsyncTryFrom<String> for Configuration {
 
 #[async_trait]
 impl NodeOpt for Configuration {
-    async fn get_relay(&mut self) -> anyhow::Result<Node> {
-        self.wireguard.lock().await.get_relay().await
-    }
-
     async fn get_by_name(&mut self, node_name: &str) -> anyhow::Result<Node> {
         let mut wg = self.wireguard.lock().await;
         wg.get_by_name(node_name).await
-    }
-
-    async fn set_relay(&mut self, node: Node) -> anyhow::Result<()> {
-        let mut wg = self.wireguard.lock().await;
-        wg.set_relay(node).await?;
-        Configuration::write(&self.path, &wg).await
     }
 
     async fn push(&mut self, node: Node) -> anyhow::Result<()> {
@@ -329,14 +324,12 @@ impl NodeOpt for Configuration {
         Configuration::write(&self.path, &wg).await
     }
 
-    async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
-        self.wireguard.lock().await.list().await
+    async fn list_by_relay(&mut self, relay: bool) -> anyhow::Result<Vec<Node>> {
+        self.wireguard.lock().await.list_by_relay(relay).await
     }
 
-    async fn clear(&mut self) -> anyhow::Result<()> {
-        let mut wg = self.wireguard.lock().await;
-        wg.clear().await?;
-        Configuration::write(&self.path, &wg).await
+    async fn list(&mut self) -> anyhow::Result<Vec<Node>> {
+        self.wireguard.lock().await.list().await
     }
 
     async fn remove_all(&mut self) -> anyhow::Result<()> {
@@ -351,22 +344,18 @@ impl NodeOpt for Configuration {
         Configuration::write(&self.path, &wg).await
     }
 
-    async fn remove_by_index(&mut self, index: usize) -> anyhow::Result<()> {
+    async fn remove(&mut self, index: usize) -> anyhow::Result<()> {
         let mut wg = self.wireguard.lock().await;
-        wg.remove_by_index(index).await?;
+        wg.remove(index).await?;
         Configuration::write(&self.path, &wg).await
     }
 
-    async fn drop(&mut self) -> anyhow::Result<()> {
+    async fn clear(&mut self) -> anyhow::Result<()> {
         let mut wg = self.wireguard.lock().await;
-        NodeOpt::drop(wg.deref_mut()).await?;
+        NodeOpt::clear(wg.deref_mut()).await?;
         tokio::fs::remove_file(&self.path).await.context(format!(
             "Delete configuration file: {}, an error occurred",
             self.path.display()
         ))
-    }
-
-    async fn exist(&self, name: String) -> bool {
-        self.wireguard.lock().await.exist(name).await
     }
 }
