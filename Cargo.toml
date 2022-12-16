@@ -3,7 +3,7 @@ name = "wgsdc"
 version = "0.1.0"
 edition = "2021"
 description = "WireGuard configure the service discovery tool"
-author = "<gngpp verticle@foxmail.com>"
+authors = ["<gngpp gngppz@gmail.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -24,3 +24,4 @@ tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "sync", "
 qr2term = "0.3.1"
 async-trait = "0.1.59"
 inquire = "0.5.2"
+url = "2.3.1"

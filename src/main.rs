@@ -18,28 +18,28 @@ pub const DEFAULT_PEER_ENDPOINT_ALLOWED_IPS: &str = "10.66.66.0/24";
 #[tokio::main]
 async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
     use clap::Parser;
-    let wgsdc = args::Wgsdc::parse();
+    let wgsdc = args::Opt::parse();
     // enabled debug mode
     init_log(wgsdc.debug);
     match wgsdc.commands {
-        Some(SubCommands::AddPeerRelay(add_interface)) => {
-            handler::subcommand_add_server_handler(add_interface, wgsdc.config).await?
+        Some(SubCommands::New(add_interface)) => {
+            handler::subcommand_new_handler(add_interface, wgsdc.dir).await?
         }
 
         Some(SubCommands::AddPeer(add_peer)) => {
-            handler::subcommand_add_peer_handler(add_peer, wgsdc.config).await?
+            handler::subcommand_add_peer_handler(add_peer, wgsdc.dir).await?
         }
 
         Some(SubCommands::RevokePeer) => {
-            handler::subcommand_revoke_peer_handler(wgsdc.config).await?
+            handler::subcommand_revoke_peer_handler(wgsdc.dir).await?
         }
 
         Some(SubCommands::PrintPeer) => {
-            handler::subcommand_print_peer_handler(wgsdc.config).await?;
+            handler::subcommand_print_peer_handler(wgsdc.dir).await?;
         }
 
         Some(SubCommands::Config(conf)) => {
-            handler::subcommand_config_handler(conf, wgsdc.config).await?
+            handler::subcommand_config_handler(conf, wgsdc.dir).await?
         }
 
         None => {}

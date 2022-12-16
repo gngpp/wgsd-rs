@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::conf::endpoint::IpNet;
 use crate::parser;
 use crate::{
@@ -7,32 +8,19 @@ use crate::{
 use clap::{Args, Subcommand};
 
 #[derive(clap::Parser)]
-#[command(about, version, author, arg_required_else_help = true)]
+#[command(author, version, about, long_about = None, arg_required_else_help = true)]
 #[command(args_conflicts_with_subcommands = true)]
-pub(crate) struct Wgsdc {
+pub(crate) struct Opt {
     /// Enable debug mode
     #[arg(global = true, long)]
     pub debug: bool,
 
-    /// Run in server mode
-    #[arg(short, long, group = "wgsdc", requires = "port")]
-    pub server: bool,
+    /// Configuration directory
+    #[arg(long, short, default_value = crate::conf::DEFAULT_PATH)]
+    pub dir: PathBuf,
 
-    /// Run in client mode, connecting to <host>
-    #[arg(short, long, value_parser = parser::parser_host, value_name = "HOST", group = "wgsdc", requires = "port")]
-    pub client: Option<String>,
-
-    /// Bind to a specific client/server port (TCP, temporary port by 1024-65535)
-    #[arg(short, long, value_parser = parser::parser_port_in_range, default_value = "8888")]
-    pub port: Option<u16>,
-
-    /// Client/Server connect Token
-    #[arg(long)]
-    pub token: Option<String>,
-
-    /// Use configuration
-    #[arg(global = true, default_value = "wg0")]
-    pub config: String,
+    #[arg(long, default_value = crate::conf::DEFAULT_DATA_PATH)]
+    pub data_dir: PathBuf,
 
     /// Subcommands
     #[command(subcommand)]
@@ -41,9 +29,9 @@ pub(crate) struct Wgsdc {
 
 #[derive(Subcommand)]
 pub(crate) enum SubCommands {
-    /// Add WireGuard Peer Relay
+    /// New WireGuard Peer Relay Network
     #[command(arg_required_else_help = true)]
-    AddPeerRelay(AddPeerRelay),
+    New(AddPeerRelay),
 
     /// Add WireGuard Peer
     #[command(arg_required_else_help = true)]

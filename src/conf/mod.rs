@@ -40,8 +40,9 @@ pub trait AsyncTryFrom<T>: Sized {
     async fn try_from(_: T) -> Result<Self, Self::Error>;
 }
 
-const DEFAULT_PATH: &str = "/etc/wireguard/wgsdc";
-const DEFAULT_FILE_SUFFIX: &str = ".yaml";
+pub const DEFAULT_PATH: &str = "/etc/wireguard/wgsdc";
+pub const DEFAULT_DATA_PATH: &str = "/var/lib/wgsdc";
+pub const DEFAULT_FILE_SUFFIX: &str = ".yaml";
 
 pub struct Configuration {
     path: PathBuf,
