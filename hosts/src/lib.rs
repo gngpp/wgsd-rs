@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt,
     fs::OpenOptions,
-    io::{self, BufRead, BufReader, ErrorKind, Write},
+    io::{self, BufRead, BufReader, Write},
     net::IpAddr,
     path::{Path, PathBuf},
     result,
@@ -130,20 +130,20 @@ impl HostsBuilder {
                 format!(
                     "{}\\System32\\Drivers\\Etc\\hosts",
                     std::env::var("WinDir").map_err(|_| io::Error::new(
-                        ErrorKind::Other,
+                        io::ErrorKind::Other,
                         "WinDir environment variable missing".to_owned()
                     ))?
                 ),
             )
         } else {
             return Err(io::Error::new(
-                ErrorKind::Other,
+                io::ErrorKind::Other,
                 "unsupported operating system.".to_owned(),
             ));
         };
 
         if !hosts_file.exists() {
-            return Err(ErrorKind::NotFound.into());
+            return Err(io::ErrorKind::NotFound.into());
         }
 
         Ok(hosts_file)
@@ -209,7 +209,7 @@ impl HostsBuilder {
             (Some(begin), Some(end)) => {
                 lines.drain(begin..end + 1);
                 begin
-            },
+            }
             (None, None) => {
                 // Insert a blank line before a new section.
                 if let Some(last_line) = lines.iter().last() {
@@ -218,13 +218,13 @@ impl HostsBuilder {
                     }
                 }
                 lines.len()
-            },
+            }
             _ => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
                     format!("start or end marker missing in {:?}", &hosts_path),
                 ));
-            },
+            }
         };
 
         let mut s = vec![];
@@ -255,10 +255,10 @@ impl HostsBuilder {
             Err(_) => {
                 Self::write_clobber(hosts_path, &s)?;
                 log::debug!("wrote hosts file with the clobber fallback strategy");
-            },
+            }
             _ => {
                 log::debug!("wrote hosts file with the write-and-swap strategy");
-            },
+            }
         }
         Ok(())
     }
