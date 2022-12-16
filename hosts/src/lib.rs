@@ -33,9 +33,9 @@ impl std::error::Error for Error {
 /// # Examples
 ///
 /// ```no_run
-/// use hosts::{HostsBuilder, Result};
+/// use hosts::{Hosts, Result};
 /// # fn main() -> Result<()> {
-/// let mut hosts = HostsBuilder::new("dns");
+/// let mut hosts = Hosts::new("dns");
 /// hosts.add_hostname("8.8.8.8".parse().unwrap(), "google-dns1");
 /// hosts.add_hostname("8.8.4.4".parse().unwrap(), "google-dns2");
 /// hosts.write_to("/tmp/hosts")?;
@@ -55,9 +55,9 @@ impl std::error::Error for Error {
 /// Another run of `HostsBuilder` with the same tag name overrides the section.
 ///
 /// ```no_run
-/// use hosts::{HostsBuilder, Result};
+/// use hosts::{Hosts, Result};
 /// # fn main() -> Result<()> {
-/// let mut hosts = HostsBuilder::new("dns");
+/// let mut hosts = Hosts::new("dns");
 /// hosts.add_hostnames("1.1.1.1".parse().unwrap(), &["cloudflare-dns", "apnic-dns"]);
 /// hosts.write_to("/tmp/hosts")?;
 /// # Ok(())
@@ -79,12 +79,12 @@ impl std::error::Error for Error {
 /// 1.1.1.1 apnic-dns
 /// # DO NOT EDIT dns END
 /// ```
-pub struct HostsBuilder {
+pub struct Hosts {
     tag: String,
     hostname_map: HashMap<IpAddr, Vec<String>>,
 }
 
-impl HostsBuilder {
+impl Hosts {
     /// Creates a new `HostsBuilder` with the given tag name. It corresponds to a section in the
     /// hosts file containing a list of IP to hostname mappings.
     pub fn new<S: Into<String>>(tag: S) -> Self {
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_temp_path_ok() {
         let hosts_path = Path::new("/etc/hosts");
-        let temp_path = HostsBuilder::get_temp_path(hosts_path).unwrap();
+        let temp_path = Hosts::get_temp_path(hosts_path).unwrap();
         println!("{:?}", temp_path);
         assert!(temp_path
             .file_name()
@@ -305,19 +305,19 @@ mod tests {
     #[test]
     fn test_temp_path_invalid() {
         let hosts_path = Path::new("/");
-        assert!(HostsBuilder::get_temp_path(hosts_path).is_err());
+        assert!(Hosts::get_temp_path(hosts_path).is_err());
 
-        let hosts_path = HostsBuilder::default_hosts_path().unwrap();
-        assert!(HostsBuilder::get_temp_path(hosts_path.as_path()).is_ok())
+        let hosts_path = Hosts::default_hosts_path().unwrap();
+        assert!(Hosts::get_temp_path(hosts_path.as_path()).is_ok())
     }
 
     #[test]
     fn test_write() {
         let (mut temp_file, temp_path) = tempfile::NamedTempFile::new().unwrap().into_parts();
         temp_file.write_all(b"preexisting\ncontent").unwrap();
-        let mut builder = HostsBuilder::new("test hosts");
-        builder.add_hostname("1.1.1.1".parse::<IpAddr>().unwrap(), "test");
-        builder.write_to(&temp_path).unwrap();
+        let mut hosts = Hosts::new("test hosts");
+        hosts.add_hostname("1.1.1.1".parse::<IpAddr>().unwrap(), "test");
+        hosts.write_to(&temp_path).unwrap();
 
         let contents = std::fs::read_to_string(&temp_path).unwrap();
         println!("contents: {}", contents);
@@ -325,5 +325,7 @@ mod tests {
         assert!(contents.contains("DO NOT EDIT test hosts BEGIN"));
         assert!(contents.contains("1.1.1.1 test"));
         assert!(contents.contains("# DO NOT EDIT test hosts END"));
+
+
     }
 }
