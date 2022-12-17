@@ -1,27 +1,8 @@
-[package]
-name = "wgsdc"
-version = "0.1.0"
-edition = "2021"
-description = "WireGuard configure the service discovery tool"
-authors = ["<gngpp gngppz@gmail.com>"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [workspace]
-members = ["hosts"]
+members = ["hosts", "netlink-request", "client", "server", "wgctl"]
 
-[dependencies]
-anyhow = "1.0.66"
-clap = { version = "4.0.29", features = ["derive"] }
-ipnet = "2.5.1"
-log = "0.4.17"
-env_logger = "0.10.0"
-chrono = "0.4.23"
-sudo = "0.6.0"
-serde = { version = "1.0.147", features = ["derive"] }
-serde_yaml = "0.9"
-tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "sync", "fs", "io-std", "io-util"] }
-qr2term = "0.3.1"
-async-trait = "0.1.59"
-inquire = "0.5.2"
-url = "2.3.1"
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+lto = "fat"
+panic = "abort"
