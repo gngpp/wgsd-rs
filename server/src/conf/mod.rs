@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 
 pub mod endpoint;
 mod model;
+pub mod standard;
 
 #[async_trait]
 pub trait NodeOpt: Sized {
@@ -51,7 +52,7 @@ pub struct Configuration {
 
 impl Configuration {
     async fn init(conf: String) -> anyhow::Result<PathBuf> {
-        // example: wg0
+        // examples: wg0
         if conf.is_empty() {
             return Err(anyhow!("config name:'{}' cannot been empty!", conf));
         }

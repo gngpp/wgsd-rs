@@ -1,0 +1,9 @@
+pub const DEFAULT_INTERFACE_ADDRESS: &str = "10.66.66.1/24";
+
+pub const DEFAULT_INTERFACE_LISTEN_PORT: &str = "51820";
+
+pub const DEFAULT_MTU: &str = "1420";
+
+pub const DEFAULT_PEER_PERSISTENT_KEEPALIVE: &str = "21";
+
+pub const DEFAULT_PEER_ENDPOINT_ALLOWED_IPS: &str = "10.66.66.0/24";

@@ -1,11 +1,11 @@
-use std::path::PathBuf;
 use crate::conf::endpoint::IpNet;
-use crate::parser;
-use crate::{
+use crate::conf::standard::{
     DEFAULT_INTERFACE_ADDRESS, DEFAULT_INTERFACE_LISTEN_PORT, DEFAULT_MTU,
     DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, DEFAULT_PEER_PERSISTENT_KEEPALIVE,
 };
+use crate::parser;
 use clap::{Args, Subcommand};
+use std::path::PathBuf;
 
 #[derive(clap::Parser)]
 #[command(author, version, about, long_about = None, arg_required_else_help = true)]
@@ -19,6 +19,7 @@ pub(crate) struct Opt {
     #[arg(long, short, default_value = crate::conf::DEFAULT_PATH)]
     pub dir: PathBuf,
 
+    // Database directory
     #[arg(long, default_value = crate::conf::DEFAULT_DATA_PATH)]
     pub data_dir: PathBuf,
 
@@ -31,7 +32,7 @@ pub(crate) struct Opt {
 pub(crate) enum SubCommands {
     /// New WireGuard Peer Relay Network
     #[command(arg_required_else_help = true)]
-    New(AddPeerRelay),
+    New(NewPeerRelayNetwork),
 
     /// Add WireGuard Peer
     #[command(arg_required_else_help = true)]
@@ -43,14 +44,18 @@ pub(crate) enum SubCommands {
     /// Print WireGuard configuration
     PrintPeer,
 
-    /// WireGuard Configuration
-    #[command(arg_required_else_help = true)]
-    Config(Config),
+    /// Up to add and set up an interface
+    Up,
+
+    /// Down to tear down and remove an interface
+    Down,
+
+    Status,
 }
 
 #[allow(unused_qualifications)]
 #[derive(Args)]
-pub(crate) struct AddPeerRelay {
+pub(crate) struct NewPeerRelayNetwork {
     /// Interface's name
     #[arg(long, short)]
     pub name: String,
@@ -131,14 +136,4 @@ pub(crate) struct AddPeer {
     /// Peer's WireGuard PreDown command
     #[arg(long)]
     pub pre_down: Option<String>,
-}
-
-#[derive(Args)]
-pub(crate) struct Config {
-    /// Print WireGuard configuration
-    #[arg(long)]
-    pub cat: bool,
-    /// Sync WireGuard configuration
-    #[arg(long)]
-    pub sync: bool,
 }

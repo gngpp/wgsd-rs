@@ -17,7 +17,7 @@ struct WireGuard {
 impl Configuration {
     //noinspection DuplicatedCode
     async fn init(conf: String) -> anyhow::Result<PathBuf> {
-        // example: wg0
+        // examples: wg0
         if conf.is_empty() {
             return Err(anyhow!("config name:'{}' cannot been empty!", conf));
         }

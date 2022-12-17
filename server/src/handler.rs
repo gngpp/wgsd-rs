@@ -13,7 +13,7 @@ const PEER_TYPE: &str = "peer";
 const PEER_SERVER_TYPE: &str = "peer-relay";
 
 pub(crate) async fn subcommand_new_handler(
-    _add_server: args::AddPeerRelay,
+    _add_server: args::NewPeerRelayNetwork,
     _config: PathBuf,
 ) -> anyhow::Result<()> {
     Ok(())
@@ -27,20 +27,10 @@ pub(crate) async fn subcommand_add_peer_handler(
 }
 
 pub(crate) async fn subcommand_revoke_peer_handler(_config: PathBuf) -> anyhow::Result<()> {
-
     Ok(())
 }
 
 pub(crate) async fn subcommand_print_peer_handler(_config: PathBuf) -> anyhow::Result<()> {
-
-    Ok(())
-}
-
-pub(crate) async fn subcommand_config_handler(
-    _conf: args::Config,
-    _config: PathBuf,
-) -> anyhow::Result<()> {
-
     Ok(())
 }
 

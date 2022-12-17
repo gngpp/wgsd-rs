@@ -1,4 +1,4 @@
-use crate::args::{AddPeer, AddPeerRelay};
+use crate::args::{AddPeer, NewPeerRelayNetwork};
 use crate::wg;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
@@ -198,7 +198,7 @@ impl From<Node> for Peer {
                 .with_endpoint(node.endpoint);
         } else {
             // peer relay address: 10.6.0.1/24
-            // example:
+            // examples:
             let mut allowed_ips = node.allowed_ips.unwrap_or_default();
             allowed_ips.extend(node.address.unwrap_or_default());
             peer.with_public_key(node.public_key)
@@ -362,8 +362,8 @@ impl Node {
     }
 }
 
-impl From<AddPeerRelay> for Node {
-    fn from(add_peer_relay: AddPeerRelay) -> Self {
+impl From<NewPeerRelayNetwork> for Node {
+    fn from(add_peer_relay: NewPeerRelayNetwork) -> Self {
         let mut node = Node::default();
         let key_pair = wg::WireGuardCommand::generate_key_pair(false).unwrap();
         node.with_relay(true)
