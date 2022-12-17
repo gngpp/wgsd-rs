@@ -1,4 +1,4 @@
-# `wireguard-control`
+# `wgctl`
 
 A high-level control library to get and set configurations for WireGuard interfaces.
 

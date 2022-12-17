@@ -26,11 +26,11 @@ fn get_base_folder() -> io::Result<PathBuf> {
     }
 }
 
-fn get_namefile(name: &InterfaceName) -> io::Result<PathBuf> {
+fn get_name_file(name: &InterfaceName) -> io::Result<PathBuf> {
     Ok(get_base_folder()?.join(&format!("{}.name", name.as_str_lossy())))
 }
 
-fn get_socketfile(name: &InterfaceName) -> io::Result<PathBuf> {
+fn get_socket_file(name: &InterfaceName) -> io::Result<PathBuf> {
     if cfg!(target_os = "linux") {
         Ok(get_base_folder()?.join(&format!("{}.sock", name)))
     } else {
@@ -39,21 +39,11 @@ fn get_socketfile(name: &InterfaceName) -> io::Result<PathBuf> {
 }
 
 fn open_socket(name: &InterfaceName) -> io::Result<UnixStream> {
-    let buf = get_socketfile(name)?;
-    println!("{}", buf.display());
-    match UnixStream::connect("/var/run/wireguard/utun4.sock") {
-        Ok(stream) => {
-            return Ok(stream)
-        }
-        Err(e) => {
-            println!("{}", e.to_string());
-            return Err(e)
-        }
-    }
+    UnixStream::connect(get_socket_file(name)?)
 }
 
 pub fn resolve_tun(name: &InterfaceName) -> io::Result<String> {
-    let namefile = get_namefile(name)?;
+    let namefile = get_name_file(name)?;
     Ok(fs::read_to_string(namefile)
         .map_err(|_| io::Error::new(io::ErrorKind::NotFound, "WireGuard name file can't be read"))?
         .trim()
@@ -61,8 +51,8 @@ pub fn resolve_tun(name: &InterfaceName) -> io::Result<String> {
 }
 
 pub fn delete_interface(name: &InterfaceName) -> io::Result<()> {
-    fs::remove_file(get_socketfile(name)?).ok();
-    fs::remove_file(get_namefile(name)?).ok();
+    fs::remove_file(get_socket_file(name)?).ok();
+    fs::remove_file(get_name_file(name)?).ok();
 
     Ok(())
 }
@@ -73,16 +63,12 @@ pub fn enumerate() -> Result<Vec<InterfaceName>, io::Error> {
     let mut interfaces = vec![];
     for entry in fs::read_dir(get_base_folder()?)? {
         let path = entry?.path();
-        if path.extension() == Some(OsStr::new("sock")) {
+        if path.extension() == Some(OsStr::new("name")) {
             let stem = path
                 .file_stem()
                 .and_then(|stem| stem.to_str())
                 .and_then(|name| name.parse::<InterfaceName>().ok())
-                .filter(|iface| {
-                    let ok = open_socket(iface).is_ok();
-                    println!("{}", ok);
-                    ok
-                });
+                .filter(|iface| open_socket(iface).is_ok());
             if let Some(iface) = stem {
                 interfaces.push(iface);
             }
@@ -142,7 +128,7 @@ impl ConfigParser {
         }
     }
 
-    fn add_line(&mut self, line: &str) -> Result<(), std::io::Error> {
+    fn add_line(&mut self, line: &str) -> Result<(), io::Error> {
         use io::ErrorKind::InvalidData;
 
         let split: Vec<&str> = line.splitn(2, '=').collect();
@@ -152,7 +138,7 @@ impl ConfigParser {
         }
     }
 
-    fn add_pair(&mut self, key: &str, value: &str) -> Result<(), std::io::Error> {
+    fn add_pair(&mut self, key: &str, value: &str) -> Result<(), io::Error> {
         use io::ErrorKind::InvalidData;
 
         match key {
@@ -233,7 +219,7 @@ impl ConfigParser {
             "errno" => {
                 // "errno" indicates an end of the stream, along with the error return code.
                 if value != "0" {
-                    return Err(std::io::Error::from_raw_os_error(
+                    return Err(io::Error::from_raw_os_error(
                         value
                             .parse()
                             .expect("Unable to parse userspace wg errno return code"),
@@ -312,7 +298,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
         Err(_) => {
             fs::create_dir_all(VAR_RUN_PATH)?;
             // Clear out any old namefiles if they didn't lead to a connected socket.
-            let _ = fs::remove_file(get_namefile(iface)?);
+            let _ = fs::remove_file(get_name_file(iface)?);
             start_userspace_wireguard(iface)?;
             std::thread::sleep(Duration::from_millis(100));
             open_socket(iface)
@@ -345,7 +331,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
             "public_key={}",
             hex::encode(peer.public_key.as_bytes())
         )
-        .ok();
+            .ok();
 
         if peer.replace_allowed_ips {
             writeln!(request, "replace_allowed_ips=true").ok();
@@ -369,7 +355,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
                 "persistent_keepalive_interval={}",
                 keepalive_interval
             )
-            .ok();
+                .ok();
         }
 
         for allowed_ip in &peer.allowed_ips {
@@ -378,7 +364,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
                 "allowed_ip={}/{}",
                 allowed_ip.address, allowed_ip.cidr
             )
-            .ok();
+                .ok();
         }
     }
 

@@ -1,3 +1,4 @@
+use rand_core::RngCore;
 use std::{ffi::NulError, fmt};
 
 /// Represents an error in base64 key parsing.
@@ -32,10 +33,8 @@ pub struct Key(pub [u8; 32]);
 impl Key {
     /// Generates and returns a new private key.
     pub fn generate_private() -> Self {
-        use rand_core::{OsRng, RngCore};
-
         let mut bytes = [0u8; 32];
-        OsRng.fill_bytes(&mut bytes);
+        rand_core::OsRng.fill_bytes(&mut bytes);
 
         // Apply key clamping.
         bytes[0] &= 248;
@@ -47,10 +46,8 @@ impl Key {
     /// Generates and returns a new preshared key.
     #[must_use]
     pub fn generate_preshared() -> Self {
-        use rand_core::{OsRng, RngCore};
-
         let mut key = [0u8; 32];
-        OsRng.fill_bytes(&mut key);
+        rand_core::OsRng.fill_bytes(&mut key);
         Self(key)
     }
 
@@ -86,7 +83,7 @@ impl Key {
     ///
     /// This can fail, as not all text input is valid base64 - in this case
     /// `Err(InvalidKey)` is returned.
-    pub fn from_base64(key: &str) -> Result<Self, crate::InvalidKey> {
+    pub fn from_base64(key: &str) -> Result<Self, InvalidKey> {
         let mut key_bytes = [0u8; 32];
         let decoded_bytes = base64::decode(key).map_err(|_| InvalidKey)?;
 
@@ -98,7 +95,7 @@ impl Key {
         Ok(Self(key_bytes))
     }
 
-    pub fn from_hex(hex_str: &str) -> Result<Self, crate::InvalidKey> {
+    pub fn from_hex(hex_str: &str) -> Result<Self, InvalidKey> {
         let mut sized_bytes = [0u8; 32];
         hex::decode_to_slice(hex_str, &mut sized_bytes).map_err(|_| InvalidKey)?;
         Ok(Self(sized_bytes))
@@ -111,10 +108,10 @@ mod test {
 
     #[test]
     fn test_pubkey_generation() {
-        let privkey = "SGb+ojrRNDuMePufwtIYhXzA//k6wF3R21tEBgKlzlM=";
+        let privy_key = "SGb+ojrRNDuMePufwtIYhXzA//k6wF3R21tEBgKlzlM=";
         let pubkey = "DD5yKRfzExcV5+kDnTroDgCU15latdMjiQ59j1hEuk8=";
 
-        let private = Key::from_base64(privkey).unwrap();
+        let private = Key::from_base64(privy_key).unwrap();
         let public = Key::get_public(&private);
 
         assert_eq!(public.to_base64(), pubkey);
@@ -123,22 +120,22 @@ mod test {
     #[test]
     fn test_rng_sanity_private() {
         let first = Key::generate_private();
-        assert!(first.as_bytes() != [0u8; 32]);
+        assert_ne!(first.as_bytes(), [0u8; 32]);
         for _ in 0..100_000 {
             let key = Key::generate_private();
-            assert!(first != key);
-            assert!(key.as_bytes() != [0u8; 32]);
+            assert_ne!(first, key);
+            assert_ne!(key.as_bytes(), [0u8; 32]);
         }
     }
 
     #[test]
-    fn test_rng_sanity_preshared() {
+    fn test_rng_sanity_pre_shared() {
         let first = Key::generate_preshared();
-        assert!(first.as_bytes() != [0u8; 32]);
+        assert_ne!(first.as_bytes(), [0u8; 32]);
         for _ in 0..100_000 {
             let key = Key::generate_preshared();
-            assert!(first != key);
-            assert!(key.as_bytes() != [0u8; 32]);
+            assert_ne!(first, key);
+            assert_ne!(key.as_bytes(), [0u8; 32]);
         }
     }
 }

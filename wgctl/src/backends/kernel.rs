@@ -182,15 +182,19 @@ pub fn enumerate() -> Result<Vec<InterfaceName>, io::Error> {
         .filter(|link| {
             for nla in link.nlas.iter() {
                 if let link::nlas::Nla::Info(infos) = nla {
-                    return infos.iter().any(|info| info == &Info::Kind(InfoKind::Wireguard))
+                    return infos
+                        .iter()
+                        .any(|info| info == &Info::Kind(InfoKind::Wireguard));
                 }
             }
             false
         })
-        .filter_map(|link| link.nlas.iter().find_map(|nla| match nla {
-            link::nlas::Nla::IfName(name) => Some(name.clone()),
-            _ => None,
-        }))
+        .filter_map(|link| {
+            link.nlas.iter().find_map(|nla| match nla {
+                link::nlas::Nla::IfName(name) => Some(name.clone()),
+                _ => None,
+            })
+        })
         .filter_map(|name| name.parse().ok())
         .collect::<Vec<_>>();
 
@@ -381,7 +385,7 @@ pub fn get_by_name(name: &InterfaceName) -> Result<Device, io::Error> {
                     io::ErrorKind::InvalidData,
                     format!("unexpected netlink payload: {:?}", nlmsg),
                 ))
-            },
+            }
         };
         nlas.append(&mut message.payload.nlas);
         Ok(nlas)

@@ -1,4 +1,3 @@
-use libc::ledger_t;
 use wgctl::{Backend, Device};
 
 #[cfg(target_os = "linux")]
@@ -11,5 +10,6 @@ fn main() {
     for iface in devices {
         let device = Device::get(&iface, BACKEND).unwrap();
         device.delete().unwrap();
+        println!("delete wireguard interface: {}", iface.to_string());
     }
 }

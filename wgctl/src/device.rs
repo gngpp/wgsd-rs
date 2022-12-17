@@ -256,7 +256,7 @@ impl Device {
 ///
 /// # Example
 /// ```rust
-/// # use wireguard_control::*;
+/// # use wgctl::*;
 /// # use std::net::AddrParseError;
 /// # fn try_main() -> Result<(), AddrParseError> {
 /// let our_keypair = KeyPair::generate();
@@ -270,7 +270,7 @@ impl Device {
 ///         peer.set_endpoint(server_addr)
 ///             .replace_allowed_ips()
 ///             .allow_all_ips()
-///     }).apply(&"wg-example".parse().unwrap(), Backend::Userspace);
+///     }).apply(&"wg-examples".parse().unwrap(), Backend::Userspace);
 ///
 /// println!("Send these keys to your peer: {:#?}", peer_keypair);
 ///
