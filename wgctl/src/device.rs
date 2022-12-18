@@ -2,6 +2,8 @@ use libc::c_char;
 
 use crate::{backends, key::Key, Backend, KeyPair, PeerConfigBuilder};
 
+use colored::Colorize;
+use std::ops::Not;
 use std::{
     borrow::Cow,
     ffi::CStr,
@@ -239,6 +241,140 @@ impl Device {
             Backend::Kernel => backends::kernel::get_by_name(name),
             Backend::Userspace => backends::userspace::get_by_name(name),
         }
+    }
+
+    #[cfg(feature = "print")]
+    pub fn print(&self) {
+        println!(
+            "{}: {}",
+            "interface".green(),
+            self.name.as_str_lossy().green()
+        );
+        if let Some(public_key) = &self.public_key {
+            println!(
+                "  {}: {}",
+                "public key".white().bold(),
+                public_key.to_base64()
+            );
+        }
+
+        if let Some(_private_key) = &self.public_key {
+            println!("  {}: {}", "private key".white().bold(), "(hidden)");
+        }
+
+        if let Some(listen_port) = self.listen_port {
+            println!("  {}: {}", "listen port".white().bold(), listen_port);
+        }
+
+        for peer in &self.peers {
+            println!();
+            Self::print_peer(peer);
+        }
+    }
+
+    #[cfg(feature = "print")]
+    fn print_peer(peer: &PeerInfo) {
+        println!(
+            "{}: {}",
+            "peer".yellow(),
+            peer.config.public_key.to_base64().as_str().yellow()
+        );
+
+        if let Some(_preshare_key) = &peer.config.preshared_key {
+            println!("  {}: {}", "preshared key".white().bold(), "(hidden)");
+        }
+        if let Some(endpoint) = peer.config.endpoint {
+            println!("  {}: {}", "endpoint".white().bold(), endpoint);
+        }
+
+        if peer.config.allowed_ips.is_empty().not() {
+            print!("  {}: ", "allowed ips".white().bold());
+            for (i, allowed_ip) in peer.config.allowed_ips.iter().enumerate() {
+                print!("{}{}{}", allowed_ip.address, "/".cyan(), allowed_ip.cidr);
+                if i < peer.config.allowed_ips.len() - 1 {
+                    print!(", ");
+                } else {
+                    println!()
+                }
+            }
+        }
+
+        if let Some(latest_handshake) = &peer.stats.last_handshake_time {
+            println!("  {}: {}", "latest handshake".white().bold(), Self::calculate_time(latest_handshake));
+        }
+
+        if peer.stats.tx_bytes > 0 || peer.stats.rx_bytes > 0 {
+            use byte_unit::Byte;
+
+            let rx_byte = Byte::from(peer.stats.rx_bytes);
+            let tx_byte = Byte::from(peer.stats.tx_bytes);
+            println!(
+                "  {}: {} {}, {} {}",
+                "transfer".white().bold(),
+                rx_byte.get_appropriate_unit(false),
+                "received",
+                tx_byte.get_appropriate_unit(false),
+                "sent"
+            );
+        }
+    }
+
+    #[cfg(feature = "print")]
+    fn calculate_time(latest_handshake: &SystemTime) -> String {
+
+        // Convert 100000 seconds to specific year, month, day, hour, minute, second
+        let mut seconds = latest_handshake.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let mut years = 0;
+        let mut months = 0;
+        let mut days = 0;
+        let mut hours = 0;
+        let mut minutes = 0;
+        // Calculate the number of years used
+        years = seconds / 31_536_000; // 365 * 86400
+        seconds %= 31_536_000;
+
+        // Calculate the number of months used
+        months = seconds / 2_628_000; // 30 * 86400
+        seconds %= 2_628_000;
+
+        // Calculate the number of days used
+        days = seconds / 86_400; // 86400
+        seconds %= 86_400;
+
+        // Calculate hours used
+        hours = seconds / 3_600; // 3600
+        seconds %= 3_600;
+
+        // Calculate the number of minutes used
+        minutes = seconds / 60;
+        seconds %= 60;
+
+        let mut str_time = String::new();
+        if years > 0 {
+            str_time.push_str(&format!(" {} {},", years, "years".cyan()));
+        }
+
+        if months > 0 {
+            str_time.push_str(&format!(" {} {},", months, "months".cyan()));
+        }
+
+        if days > 0 {
+            str_time.push_str(&format!(" {} {},", days, "days".cyan()));
+        }
+
+        if hours > 0 {
+            str_time.push_str(&format!(" {} {},", hours, "hours".cyan()));
+        }
+
+        if minutes > 0 {
+            str_time.push_str(&format!(" {} {},", minutes, "minutes".cyan()));
+        }
+
+        if seconds > 0 {
+            str_time.push_str(&format!(" {} {}", seconds, "seconds ago".cyan()));
+        }
+
+        str_time
     }
 
     pub fn delete(self) -> Result<(), io::Error> {
