@@ -22,10 +22,7 @@ pub struct AllowedIp {
 
 impl AllowedIp {
     pub fn new(address: IpAddr, cidr: u8) -> Self {
-        Self {
-            address,
-            cidr
-        }
+        Self { address, cidr }
     }
 }
 

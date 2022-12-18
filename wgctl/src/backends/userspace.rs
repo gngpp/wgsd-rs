@@ -149,10 +149,10 @@ impl ConfigParser {
                     .private_key
                     .as_ref()
                     .map(|k| k.get_public());
-            },
+            }
             "listen_port" => {
                 self.device_info.listen_port = Some(value.parse().map_err(|_| InvalidData)?)
-            },
+            }
             "fwmark" => self.device_info.fwmark = Some(value.parse().map_err(|_| InvalidData)?),
             "public_key" => {
                 let new_peer = new_peer_info(Key::from_hex(value).map_err(|_| InvalidData)?);
@@ -160,28 +160,28 @@ impl ConfigParser {
                 if let Some(finished_peer) = self.current_peer.replace(new_peer) {
                     self.device_info.peers.push(finished_peer);
                 }
-            },
+            }
             "preshared_key" => {
                 self.current_peer
                     .as_mut()
                     .ok_or(InvalidData)?
                     .config
                     .preshared_key = Some(Key::from_hex(value).map_err(|_| InvalidData)?);
-            },
+            }
             "tx_bytes" => {
                 self.current_peer
                     .as_mut()
                     .ok_or(InvalidData)?
                     .stats
                     .tx_bytes = value.parse().map_err(|_| InvalidData)?
-            },
+            }
             "rx_bytes" => {
                 self.current_peer
                     .as_mut()
                     .ok_or(InvalidData)?
                     .stats
                     .rx_bytes = value.parse().map_err(|_| InvalidData)?
-            },
+            }
             "last_handshake_time_sec" => {
                 let handshake_seconds: u64 = value.parse().map_err(|_| InvalidData)?;
 
@@ -193,7 +193,7 @@ impl ConfigParser {
                         .last_handshake_time =
                         Some(SystemTime::UNIX_EPOCH + Duration::from_secs(handshake_seconds));
                 }
-            },
+            }
             "allowed_ip" => {
                 self.current_peer
                     .as_mut()
@@ -201,21 +201,21 @@ impl ConfigParser {
                     .config
                     .allowed_ips
                     .push(value.parse().map_err(|_| InvalidData)?);
-            },
+            }
             "persistent_keepalive_interval" => {
                 self.current_peer
                     .as_mut()
                     .ok_or(InvalidData)?
                     .config
                     .persistent_keepalive_interval = Some(value.parse().map_err(|_| InvalidData)?);
-            },
+            }
             "endpoint" => {
                 self.current_peer
                     .as_mut()
                     .ok_or(InvalidData)?
                     .config
                     .endpoint = Some(value.parse().map_err(|_| InvalidData)?);
-            },
+            }
             "errno" => {
                 // "errno" indicates an end of the stream, along with the error return code.
                 if value != "0" {
@@ -229,8 +229,8 @@ impl ConfigParser {
                 if let Some(finished_peer) = self.current_peer.take() {
                     self.device_info.peers.push(finished_peer);
                 }
-            },
-            "protocol_version" | "last_handshake_time_nsec" => {},
+            }
+            "protocol_version" | "last_handshake_time_nsec" => {}
             _ => println!("got unsupported info: {}={}", key, value),
         }
 
@@ -252,7 +252,7 @@ pub fn get_by_name(name: &InterfaceName) -> Result<Device, io::Error> {
             _ => {
                 parser.add_line(buf.trim_end())?;
                 buf.clear();
-            },
+            }
         };
     }
 
@@ -303,7 +303,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
             std::thread::sleep(Duration::from_millis(100));
             open_socket(iface)
                 .map_err(|e| io::Error::new(e.kind(), format!("failed to open socket ({})", e)))?
-        },
+        }
         Ok(sock) => sock,
     };
 
@@ -331,7 +331,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
             "public_key={}",
             hex::encode(peer.public_key.as_bytes())
         )
-            .ok();
+        .ok();
 
         if peer.replace_allowed_ips {
             writeln!(request, "replace_allowed_ips=true").ok();
@@ -355,7 +355,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
                 "persistent_keepalive_interval={}",
                 keepalive_interval
             )
-                .ok();
+            .ok();
         }
 
         for allowed_ip in &peer.allowed_ips {
@@ -364,7 +364,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
                 "allowed_ip={}/{}",
                 allowed_ip.address, allowed_ip.cidr
             )
-                .ok();
+            .ok();
         }
     }
 
@@ -382,7 +382,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
         ["errno", val] => {
             println!("ERROR {}", val);
             Err(io::ErrorKind::InvalidInput.into())
-        },
+        }
         _ => Err(io::ErrorKind::Other.into()),
     }
 }

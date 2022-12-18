@@ -1,3 +1,4 @@
+use crate::netlink_request::{netlink_request_genl, netlink_request_rtnl, MAX_GENL_PAYLOAD_LENGTH};
 use crate::{
     device::AllowedIp, Backend, Device, DeviceUpdate, InterfaceName, Key, PeerConfig,
     PeerConfigBuilder, PeerInfo, PeerStats,
@@ -21,7 +22,6 @@ use netlink_packet_wireguard::{
     nlas::{WgAllowedIp, WgAllowedIpAttrs, WgDeviceAttrs, WgPeer, WgPeerAttrs},
     Wireguard, WireguardCmd,
 };
-use crate::netlink_request::{netlink_request_genl, netlink_request_rtnl, MAX_GENL_PAYLOAD_LENGTH};
 
 use std::{convert::TryFrom, io};
 
