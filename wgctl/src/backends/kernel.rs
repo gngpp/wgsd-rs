@@ -21,7 +21,7 @@ use netlink_packet_wireguard::{
     nlas::{WgAllowedIp, WgAllowedIpAttrs, WgDeviceAttrs, WgPeer, WgPeerAttrs},
     Wireguard, WireguardCmd,
 };
-use netlink_request::{netlink_request_genl, netlink_request_rtnl, MAX_GENL_PAYLOAD_LENGTH};
+use crate::netlink_request::{netlink_request_genl, netlink_request_rtnl, MAX_GENL_PAYLOAD_LENGTH};
 
 use std::{convert::TryFrom, io};
 

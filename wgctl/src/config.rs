@@ -29,13 +29,13 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 ///     .add_allowed_ip("192.168.1.2".parse()?, 32);
 ///
 /// // update our existing configuration with the new peer
-/// DeviceUpdate::new().add_peer(peer).apply(&"wg-examples".parse().unwrap(), Backend::Userspace);
+/// DeviceUpdate::new().add_peer(peer).apply(&"wg-examples".parse().unwrap(), Backend::Userspace).expect("apply device error");
 ///
 /// println!("Send these keys to your peer: {:#?}", peer_keypair);
 ///
 /// # Ok(())
 /// # }
-/// # fn main() { try_main(); }
+/// # fn main() -> Result<(), AddrParseError>  { try_main() }
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PeerConfigBuilder {

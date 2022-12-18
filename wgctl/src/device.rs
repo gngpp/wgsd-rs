@@ -20,13 +20,22 @@ pub struct AllowedIp {
     pub cidr: u8,
 }
 
+impl AllowedIp {
+    pub fn new(address: IpAddr, cidr: u8) -> Self {
+        Self {
+            address,
+            cidr
+        }
+    }
+}
+
 impl fmt::Debug for AllowedIp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.address, self.cidr)
     }
 }
 
-impl std::str::FromStr for AllowedIp {
+impl FromStr for AllowedIp {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -205,9 +214,9 @@ impl fmt::Display for InvalidInterfaceName {
     }
 }
 
-impl From<InvalidInterfaceName> for std::io::Error {
+impl From<InvalidInterfaceName> for io::Error {
     fn from(e: InvalidInterfaceName) -> Self {
-        std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())
+        io::Error::new(io::ErrorKind::InvalidData, e.to_string())
     }
 }
 
@@ -219,7 +228,7 @@ impl Device {
     ///
     /// You can use [`get_by_name`](DeviceInfo::get_by_name) to retrieve more
     /// detailed information on each interface.
-    pub fn list(backend: Backend) -> Result<Vec<InterfaceName>, std::io::Error> {
+    pub fn list(backend: Backend) -> Result<Vec<InterfaceName>, io::Error> {
         match backend {
             #[cfg(target_os = "linux")]
             Backend::Kernel => backends::kernel::enumerate(),
@@ -227,7 +236,7 @@ impl Device {
         }
     }
 
-    pub fn get(name: &InterfaceName, backend: Backend) -> Result<Self, std::io::Error> {
+    pub fn get(name: &InterfaceName, backend: Backend) -> Result<Self, io::Error> {
         match backend {
             #[cfg(target_os = "linux")]
             Backend::Kernel => backends::kernel::get_by_name(name),
@@ -235,7 +244,7 @@ impl Device {
         }
     }
 
-    pub fn delete(self) -> Result<(), std::io::Error> {
+    pub fn delete(self) -> Result<(), io::Error> {
         match self.backend {
             #[cfg(target_os = "linux")]
             Backend::Kernel => backends::kernel::delete_interface(&self.name),
@@ -256,9 +265,9 @@ impl Device {
 ///
 /// # Example
 /// ```rust
-/// # use wgctl::*;
-/// # use std::net::AddrParseError;
-/// # fn try_main() -> Result<(), AddrParseError> {
+/// use wgctl::*;
+/// use std::net::AddrParseError;
+/// fn try_main() -> Result<(), AddrParseError> {
 /// let our_keypair = KeyPair::generate();
 /// let peer_keypair = KeyPair::generate();
 /// let server_addr = "192.168.1.1:51820".parse()?;
@@ -270,13 +279,13 @@ impl Device {
 ///         peer.set_endpoint(server_addr)
 ///             .replace_allowed_ips()
 ///             .allow_all_ips()
-///     }).apply(&"wg-examples".parse().unwrap(), Backend::Userspace);
+///     }).apply(&"wg-examples".parse().unwrap(), Backend::Userspace).expect("apply device error");
 ///
 /// println!("Send these keys to your peer: {:#?}", peer_keypair);
 ///
-/// # Ok(())
-/// # }
-/// # fn main() { try_main(); }
+/// Ok(())
+/// }
+/// fn main() -> Result<(), AddrParseError> { try_main() }
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DeviceUpdate {

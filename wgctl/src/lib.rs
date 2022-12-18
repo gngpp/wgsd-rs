@@ -1,6 +1,8 @@
 extern crate core;
 
 pub mod backends;
+pub mod netlink_request;
+
 mod config;
 mod device;
 mod key;

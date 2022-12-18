@@ -30,9 +30,9 @@ mod linux {
         mut message: GenlMessage<F>,
         flags: Option<u16>,
     ) -> Result<Vec<NetlinkMessage<GenlMessage<F>>>, io::Error>
-    where
-        F: GenlFamily + Clone + Debug + Eq,
-        GenlMessage<F>: Clone + Debug + Eq + NetlinkSerializable + NetlinkDeserializable,
+        where
+            F: GenlFamily + Clone + Debug + Eq,
+            GenlMessage<F>: Clone + Debug + Eq + NetlinkSerializable + NetlinkDeserializable,
     {
         if message.family_id() == 0 {
             let genlmsg: GenlMessage<GenlCtrl> = GenlMessage::from_payload(GenlCtrl {
@@ -44,13 +44,13 @@ mod linux {
 
             match responses.get(0) {
                 Some(NetlinkMessage {
-                    payload:
-                        NetlinkPayload::InnerMessage(GenlMessage {
-                            payload: GenlCtrl { nlas, .. },
-                            ..
-                        }),
-                    ..
-                }) => {
+                         payload:
+                         NetlinkPayload::InnerMessage(GenlMessage {
+                                                          payload: GenlCtrl { nlas, .. },
+                                                          ..
+                                                      }),
+                         ..
+                     }) => {
                     let family_id = get_nla_value!(nlas, GenlCtrlAttrs, FamilyId)
                         .ok_or_else(|| io::ErrorKind::NotFound)?;
                     message.set_resolved_family_id(*family_id);
@@ -78,9 +78,9 @@ mod linux {
         flags: Option<u16>,
         socket: isize,
     ) -> Result<Vec<NetlinkMessage<I>>, io::Error>
-    where
-        NetlinkPayload<I>: From<I>,
-        I: Clone + Debug + Eq + NetlinkSerializable + NetlinkDeserializable,
+        where
+            NetlinkPayload<I>: From<I>,
+            I: Clone + Debug + Eq + NetlinkSerializable + NetlinkDeserializable,
     {
         let mut req = NetlinkMessage::from(message);
 
