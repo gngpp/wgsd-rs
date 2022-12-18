@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+print = ["byte-unit/u128", "colored"]
 
 [dependencies]
 base64 = "0.20.0"
@@ -12,7 +14,7 @@ libc = "0.2"
 log = "0.4"
 rand_core = { version = "0.6.4", features = ["getrandom"]}
 curve25519-dalek = "4.0.0-pre.2"
-colored = "2.0.0"
+colored = { version = "2.0.0", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 netlink-sys = "0.8"
@@ -20,3 +22,8 @@ netlink-packet-core = "0.4"
 netlink-packet-generic = "0.3"
 netlink-packet-route = "0.13"
 netlink-packet-wireguard = "0.2"
+
+[dependencies.byte-unit]
+version = "*"
+default-features = false
+features = ["u128"]
