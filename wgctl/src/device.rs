@@ -301,7 +301,11 @@ impl Device {
         }
 
         if let Some(latest_handshake) = &peer.stats.last_handshake_time {
-            println!("  {}: {}", "latest handshake".white().bold(), Self::calculate_time(latest_handshake));
+            println!(
+                "  {}: {}",
+                "latest handshake".white().bold(),
+                Self::calculate_time(latest_handshake)
+            );
         }
 
         if peer.stats.tx_bytes > 0 || peer.stats.rx_bytes > 0 {
@@ -322,10 +326,11 @@ impl Device {
 
     #[cfg(feature = "print")]
     fn calculate_time(latest_handshake: &SystemTime) -> String {
-        let now = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
-        let latest_handshake = latest_handshake.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
         // Convert 100000 seconds to specific year, month, day, hour, minute, second
-        let mut seconds = now - latest_handshake;
+        let mut seconds = SystemTime::now()
+            .duration_since(*latest_handshake)
+            .expect("Clock may have gone backwards")
+            .as_secs();
         let mut years = 0;
         let mut months = 0;
         let mut days = 0;
