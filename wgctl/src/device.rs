@@ -2,8 +2,9 @@ use libc::c_char;
 
 use crate::{backends, key::Key, Backend, KeyPair, PeerConfigBuilder};
 
+#[cfg(feature = "print")]
 use colored::Colorize;
-use std::ops::Not;
+
 use std::{
     borrow::Cow,
     ffi::CStr,
@@ -287,7 +288,7 @@ impl Device {
             println!("  {}: {}", "endpoint".white().bold(), endpoint);
         }
 
-        if peer.config.allowed_ips.is_empty().not() {
+        if !peer.config.allowed_ips.is_empty() {
             print!("  {}: ", "allowed ips".white().bold());
             for (i, allowed_ip) in peer.config.allowed_ips.iter().enumerate() {
                 print!("{}{}{}", allowed_ip.address, "/".cyan(), allowed_ip.cidr);
@@ -321,9 +322,10 @@ impl Device {
 
     #[cfg(feature = "print")]
     fn calculate_time(latest_handshake: &SystemTime) -> String {
-
+        let now = SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let latest_handshake = latest_handshake.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
         // Convert 100000 seconds to specific year, month, day, hour, minute, second
-        let mut seconds = latest_handshake.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let mut seconds = now - latest_handshake;
         let mut years = 0;
         let mut months = 0;
         let mut days = 0;
