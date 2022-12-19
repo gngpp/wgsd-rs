@@ -1,6 +1,3 @@
-use colored::Colorize;
-use std::ops::{Add, Sub, SubAssign};
-use std::time::SystemTime;
 use wgctl::{Backend, Device};
 
 #[cfg(target_os = "linux")]
@@ -12,7 +9,6 @@ fn main() {
     let device_name_list = Device::list(BACKEND).unwrap();
     for ifname in device_name_list {
         let device = Device::get(&ifname, BACKEND).unwrap();
-        device.print();
+        device.print().unwrap();
     }
-
 }

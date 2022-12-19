@@ -245,7 +245,7 @@ impl Device {
     }
 
     #[cfg(feature = "print")]
-    pub fn print(&self) {
+    pub fn print(&self) -> Result<(), std::time::SystemTimeError> {
         println!(
             "{}: {}",
             "interface".green(),
@@ -269,12 +269,14 @@ impl Device {
 
         for peer in &self.peers {
             println!();
-            Self::print_peer(peer);
+            Self::print_peer(peer)?;
         }
+
+        Ok(())
     }
 
     #[cfg(feature = "print")]
-    fn print_peer(peer: &PeerInfo) {
+    fn print_peer(peer: &PeerInfo) -> Result<(), std::time::SystemTimeError> {
         println!(
             "{}: {}",
             "peer".yellow(),
@@ -304,7 +306,7 @@ impl Device {
             println!(
                 "  {}: {}",
                 "latest handshake".white().bold(),
-                Self::calculate_time(latest_handshake)
+                Self::calculate_time(latest_handshake)?
             );
         }
 
@@ -322,20 +324,20 @@ impl Device {
                 "sent"
             );
         }
+        Ok(())
     }
 
     #[cfg(feature = "print")]
-    fn calculate_time(latest_handshake: &SystemTime) -> String {
+    fn calculate_time(latest_handshake: &SystemTime) -> Result<String, std::time::SystemTimeError> {
         // Convert 100000 seconds to specific year, month, day, hour, minute, second
         let mut seconds = SystemTime::now()
-            .duration_since(*latest_handshake)
-            .expect("Clock may have gone backwards")
+            .duration_since(*latest_handshake)?
             .as_secs();
-        let mut years = 0;
-        let mut months = 0;
-        let mut days = 0;
-        let mut hours = 0;
-        let mut minutes = 0;
+        let years: u64;
+        let months: u64;
+        let days: u64;
+        let hours: u64;
+        let minutes: u64;
         // Calculate the number of years used
         years = seconds / 31_536_000; // 365 * 86400
         seconds %= 31_536_000;
@@ -356,32 +358,32 @@ impl Device {
         minutes = seconds / 60;
         seconds %= 60;
 
-        let mut str_time = String::new();
+        let mut format_time = String::new();
         if years > 0 {
-            str_time.push_str(&format!(" {} {},", years, "years".cyan()));
+            format_time.push_str(&format!(" {} {},", years, "years".cyan()));
         }
 
         if months > 0 {
-            str_time.push_str(&format!(" {} {},", months, "months".cyan()));
+            format_time.push_str(&format!(" {} {},", months, "months".cyan()));
         }
 
         if days > 0 {
-            str_time.push_str(&format!(" {} {},", days, "days".cyan()));
+            format_time.push_str(&format!(" {} {},", days, "days".cyan()));
         }
 
         if hours > 0 {
-            str_time.push_str(&format!(" {} {},", hours, "hours".cyan()));
+            format_time.push_str(&format!(" {} {},", hours, "hours".cyan()));
         }
 
         if minutes > 0 {
-            str_time.push_str(&format!(" {} {},", minutes, "minutes".cyan()));
+            format_time.push_str(&format!(" {} {},", minutes, "minutes".cyan()));
         }
 
         if seconds > 0 {
-            str_time.push_str(&format!(" {} {}", seconds, "seconds ago".cyan()));
+            format_time.push_str(&format!(" {} {}", seconds, "seconds ago".cyan()));
         }
 
-        str_time
+        Ok(format_time)
     }
 
     pub fn delete(self) -> Result<(), io::Error> {
