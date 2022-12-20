@@ -13,6 +13,7 @@ use std::{
     str::FromStr,
     time::SystemTime,
 };
+use crate::tools::quick::WgQuick;
 
 /// Represents an IP address a peer is allowed to have, in CIDR notation.
 #[derive(PartialEq, Eq, Clone)]
@@ -389,7 +390,7 @@ impl Device {
         Ok(format_time)
     }
 
-    pub fn delete(self) -> Result<(), io::Error> {
+    pub fn delete(self) -> io::Result<()> {
         match self.backend {
             #[cfg(target_os = "linux")]
             Backend::Kernel => backends::kernel::delete_interface(&self.name),
@@ -586,62 +587,5 @@ impl DeviceUpdate {
 impl Default for DeviceUpdate {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{DeviceUpdate, InterfaceName, InvalidInterfaceName, KeyPair, PeerConfigBuilder};
-
-    const TEST_INTERFACE: &str = "wgctrl-test";
-    use super::*;
-
-    #[test]
-    fn test_add_peers() {
-        if unsafe { libc::getuid() } != 0 {
-            return;
-        }
-
-        let keypairs: Vec<_> = (0..10).map(|_| KeyPair::generate()).collect();
-        let mut builder = DeviceUpdate::new();
-        for keypair in &keypairs {
-            builder = builder.add_peer(PeerConfigBuilder::new(&keypair.public))
-        }
-        let interface = TEST_INTERFACE.parse().unwrap();
-        builder.apply(&interface, Backend::Userspace).unwrap();
-
-        let device = Device::get(&interface, Backend::Userspace).unwrap();
-
-        for keypair in &keypairs {
-            assert!(device
-                .peers
-                .iter()
-                .any(|p| p.config.public_key == keypair.public));
-        }
-
-        device.delete().unwrap();
-    }
-
-    #[test]
-    fn test_interface_names() {
-        assert_eq!(
-            "wg-01".parse::<InterfaceName>().unwrap().as_str_lossy(),
-            "wg-01"
-        );
-        assert!("longer-nul\0".parse::<InterfaceName>().is_err());
-
-        let invalid_names = &[
-            ("", InvalidInterfaceName::Empty),          // Empty Rust string
-            ("\0", InvalidInterfaceName::InvalidChars), // Empty C string
-            ("ifname\0nul", InvalidInterfaceName::InvalidChars), // Contains interior NUL
-            ("if name", InvalidInterfaceName::InvalidChars), // Contains a space
-            ("ifna/me", InvalidInterfaceName::InvalidChars), // Contains a slash
-            ("if na/me", InvalidInterfaceName::InvalidChars), // Contains a space and slash
-            ("interfacelongname", InvalidInterfaceName::TooLong), // Too long
-        ];
-
-        for (name, expected) in invalid_names {
-            assert!(name.parse::<InterfaceName>().as_ref() == Err(expected))
-        }
     }
 }

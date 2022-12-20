@@ -9,11 +9,13 @@ use std::{
     process::{Command, Output},
     time::{Duration, SystemTime},
 };
+use std::fs::OpenOptions;
 
 static VAR_RUN_PATH: &str = "/var/run/wireguard";
 static RUN_PATH: &str = "/run/wireguard";
 
 fn get_base_folder() -> io::Result<PathBuf> {
+
     if Path::new(VAR_RUN_PATH).exists() {
         Ok(Path::new(VAR_RUN_PATH).to_path_buf())
     } else if Path::new(RUN_PATH).exists() {
@@ -26,7 +28,7 @@ fn get_base_folder() -> io::Result<PathBuf> {
     }
 }
 
-fn get_name_file(name: &InterfaceName) -> io::Result<PathBuf> {
+fn get_alias_name_file(name: &InterfaceName) -> io::Result<PathBuf> {
     Ok(get_base_folder()?.join(&format!("{}.name", name.as_str_lossy())))
 }
 
@@ -34,7 +36,7 @@ fn get_socket_file(name: &InterfaceName) -> io::Result<PathBuf> {
     if cfg!(target_os = "linux") {
         Ok(get_base_folder()?.join(&format!("{}.sock", name)))
     } else {
-        Ok(get_base_folder()?.join(&format!("{}.sock", resolve_tun(name)?)))
+        Ok(get_base_folder()?.join(&format!("{}.sock", get_tun_name(name)?)))
     }
 }
 
@@ -42,22 +44,20 @@ fn open_socket(name: &InterfaceName) -> io::Result<UnixStream> {
     UnixStream::connect(get_socket_file(name)?)
 }
 
-pub fn resolve_tun(name: &InterfaceName) -> io::Result<String> {
-    let namefile = get_name_file(name)?;
-    Ok(fs::read_to_string(namefile)
+pub fn get_tun_name(name: &InterfaceName) -> io::Result<String> {
+    let alias_name_file_path = get_alias_name_file(name)?;
+    Ok(fs::read_to_string(alias_name_file_path)
         .map_err(|_| io::Error::new(io::ErrorKind::NotFound, "WireGuard name file can't be read"))?
         .trim()
         .to_string())
 }
 
 pub fn delete_interface(name: &InterfaceName) -> io::Result<()> {
-    fs::remove_file(get_socket_file(name)?).ok();
-    fs::remove_file(get_name_file(name)?).ok();
-
-    Ok(())
+    fs::remove_file(get_socket_file(name)?)?;
+    fs::remove_file(get_alias_name_file(name)?)
 }
 
-pub fn enumerate() -> Result<Vec<InterfaceName>, io::Error> {
+pub fn enumerate() -> io::Result<Vec<InterfaceName>> {
     use std::ffi::OsStr;
 
     let mut interfaces = vec![];
@@ -96,39 +96,39 @@ fn new_peer_info(public_key: Key) -> PeerInfo {
     }
 }
 
-struct ConfigParser {
-    device_info: Device,
+struct DeviceConfigParser {
+    device: Device,
     current_peer: Option<PeerInfo>,
 }
 
-impl From<ConfigParser> for Device {
-    fn from(parser: ConfigParser) -> Self {
-        parser.device_info
+impl From<DeviceConfigParser> for Device {
+    fn from(parser: DeviceConfigParser) -> Self {
+        parser.device
     }
 }
 
-impl ConfigParser {
+impl DeviceConfigParser {
     /// Returns `None` if an invalid device name was provided.
     fn new(name: &InterfaceName) -> Self {
-        let device_info = Device {
+        let device = Device {
             name: *name,
             public_key: None,
             private_key: None,
             fwmark: None,
             listen_port: None,
             peers: vec![],
-            linked_name: resolve_tun(name).ok(),
+            linked_name: get_tun_name(name).ok(),
             backend: Backend::Userspace,
             __cant_construct_me: (),
         };
 
         Self {
-            device_info,
+            device,
             current_peer: None,
         }
     }
 
-    fn add_line(&mut self, line: &str) -> Result<(), io::Error> {
+    fn add_line(&mut self, line: &str) -> io::Result<()> {
         use io::ErrorKind::InvalidData;
 
         let split: Vec<&str> = line.splitn(2, '=').collect();
@@ -138,27 +138,27 @@ impl ConfigParser {
         }
     }
 
-    fn add_pair(&mut self, key: &str, value: &str) -> Result<(), io::Error> {
+    fn add_pair(&mut self, key: &str, value: &str) -> io::Result<()> {
         use io::ErrorKind::InvalidData;
 
         match key {
             "private_key" => {
-                self.device_info.private_key = Some(Key::from_hex(value).map_err(|_| InvalidData)?);
-                self.device_info.public_key = self
-                    .device_info
+                self.device.private_key = Some(Key::from_hex(value).map_err(|_| InvalidData)?);
+                self.device.public_key = self
+                    .device
                     .private_key
                     .as_ref()
                     .map(|k| k.get_public());
             }
             "listen_port" => {
-                self.device_info.listen_port = Some(value.parse().map_err(|_| InvalidData)?)
+                self.device.listen_port = Some(value.parse().map_err(|_| InvalidData)?)
             }
-            "fwmark" => self.device_info.fwmark = Some(value.parse().map_err(|_| InvalidData)?),
+            "fwmark" => self.device.fwmark = Some(value.parse().map_err(|_| InvalidData)?),
             "public_key" => {
                 let new_peer = new_peer_info(Key::from_hex(value).map_err(|_| InvalidData)?);
 
                 if let Some(finished_peer) = self.current_peer.replace(new_peer) {
-                    self.device_info.peers.push(finished_peer);
+                    self.device.peers.push(finished_peer);
                 }
             }
             "preshared_key" => {
@@ -227,7 +227,7 @@ impl ConfigParser {
                 }
 
                 if let Some(finished_peer) = self.current_peer.take() {
-                    self.device_info.peers.push(finished_peer);
+                    self.device.peers.push(finished_peer);
                 }
             }
             "protocol_version" | "last_handshake_time_nsec" => {}
@@ -238,13 +238,13 @@ impl ConfigParser {
     }
 }
 
-pub fn get_by_name(name: &InterfaceName) -> Result<Device, io::Error> {
+pub fn get_by_name(name: &InterfaceName) -> io::Result<Device> {
     let mut sock = open_socket(name)?;
     sock.write_all(b"get=1\n\n")?;
     let mut reader = BufReader::new(sock);
     let mut buf = String::new();
 
-    let mut parser = ConfigParser::new(name);
+    let mut parser = DeviceConfigParser::new(name);
 
     loop {
         match reader.read_line(&mut buf)? {
@@ -298,7 +298,7 @@ pub fn apply(builder: &DeviceUpdate, iface: &InterfaceName) -> io::Result<()> {
         Err(_) => {
             fs::create_dir_all(VAR_RUN_PATH)?;
             // Clear out any old namefiles if they didn't lead to a connected socket.
-            let _ = fs::remove_file(get_name_file(iface)?);
+            let _ = fs::remove_file(get_alias_name_file(iface)?);
             start_userspace_wireguard(iface)?;
             std::thread::sleep(Duration::from_millis(100));
             open_socket(iface)

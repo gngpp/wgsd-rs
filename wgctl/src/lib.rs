@@ -6,6 +6,7 @@ pub mod netlink_request;
 mod config;
 mod device;
 mod key;
+pub mod tools;
 
 use std::{
     fmt::{self, Display, Formatter},
