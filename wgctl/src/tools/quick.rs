@@ -128,11 +128,14 @@ impl WgQuick {
         #[cfg(target_os = "macos")]
         use crate::tools::macos::{add_route, set_addr, set_up};
 
+        let up = false;
         for address in self.cidr {
             set_addr(&self.interface, address)?;
+            if !up {
+                set_up(&self.interface, self.mtu)?;
+            }
             add_route(&self.interface, address)?;
         }
-        set_up(&self.interface, self.mtu)?;
 
         Ok(())
     }
