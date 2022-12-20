@@ -313,14 +313,17 @@ impl Device {
         if peer.stats.tx_bytes > 0 || peer.stats.rx_bytes > 0 {
             use byte_unit::Byte;
 
-            let rx_byte = Byte::from(peer.stats.rx_bytes);
-            let tx_byte = Byte::from(peer.stats.tx_bytes);
+            let rx_byte = Byte::from(peer.stats.rx_bytes)
+                .get_appropriate_unit(true);
+
+            let tx_byte = Byte::from(peer.stats.tx_bytes)
+                .get_appropriate_unit(true);
             println!(
                 "  {}: {} {}, {} {}",
                 "transfer".white().bold(),
-                rx_byte.get_appropriate_unit(false),
+                format!("{:.2} {}", rx_byte.get_value(), rx_byte.get_unit().to_string().cyan()),
                 "received",
-                tx_byte.get_appropriate_unit(false),
+                format!("{:.2} {}", tx_byte.get_value(), tx_byte.get_unit().to_string().cyan()),
                 "sent"
             );
         }
