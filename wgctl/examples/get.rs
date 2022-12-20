@@ -9,6 +9,5 @@ fn main() {
     let interface = "test".parse::<InterfaceName>().unwrap();
 
     let device = Device::get(&interface, BACKEND).unwrap();
-    device.delete()
     println!("{:?}", device);
 }
