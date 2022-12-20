@@ -303,7 +303,9 @@ impl Device {
         }
 
         if let Some(keepalive) = peer.config.persistent_keepalive_interval {
-            println!("  {}: every {} {}", "persistent keepalive".white().bold(), keepalive, "seconds".cyan())
+            if keepalive > 0 {
+                println!("  {}: every {} {}", "persistent keepalive".white().bold(), keepalive, "seconds".cyan())
+            }
         }
 
         if let Some(latest_handshake) = &peer.stats.last_handshake_time {
