@@ -7,10 +7,8 @@ use netlink_packet_route::{
     route, AddressHeader, AddressMessage, LinkHeader, LinkMessage, RouteHeader, RouteMessage,
     RtnlMessage, RTN_UNICAST, RT_SCOPE_LINK, RT_TABLE_MAIN,
 };
-use netlink_request::netlink_request_rtnl;
+use crate::netlink_request::netlink_request_rtnl;
 use std::{io, net::IpAddr};
-use libc::{AF_INET, AF_INET6, IFF_LOOPBACK, IFF_UP};
-use wireguard_control::InterfaceName;
 use crate::InterfaceName;
 
 fn if_nametoindex(interface: &InterfaceName) -> Result<u32, io::Error> {

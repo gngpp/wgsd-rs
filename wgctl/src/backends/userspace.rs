@@ -9,7 +9,6 @@ use std::{
     process::{Command, Output},
     time::{Duration, SystemTime},
 };
-use std::fs::OpenOptions;
 
 static VAR_RUN_PATH: &str = "/var/run/wireguard";
 static RUN_PATH: &str = "/run/wireguard";

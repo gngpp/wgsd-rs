@@ -13,7 +13,6 @@ use std::{
     str::FromStr,
     time::SystemTime,
 };
-use crate::tools::quick::WgQuick;
 
 /// Represents an IP address a peer is allowed to have, in CIDR notation.
 #[derive(PartialEq, Eq, Clone)]
@@ -303,12 +302,20 @@ impl Device {
             }
         }
 
+        if let Some(keepalive) = peer.config.persistent_keepalive_interval {
+            println!("  {}: every {} {}", "persistent keepalive".white().bold(), keepalive, "seconds".cyan())
+        }
+
         if let Some(latest_handshake) = &peer.stats.last_handshake_time {
-            println!(
-                "  {}: {}",
-                "latest handshake".white().bold(),
-                Self::calculate_time(latest_handshake)?
-            );
+            let timestamp = latest_handshake.duration_since(SystemTime::UNIX_EPOCH)
+                .expect("Time went backwards");
+            if timestamp.as_secs() > 0 {
+                println!(
+                    "  {}: {}",
+                    "latest handshake".white().bold(),
+                    Self::calculate_time(latest_handshake)?
+                );
+            }
         }
 
         if peer.stats.tx_bytes > 0 || peer.stats.rx_bytes > 0 {
