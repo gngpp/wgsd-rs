@@ -1,6 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 use ipnet::IpNet;
-use wgctl::{AllowedIp, Backend, Device, DeviceUpdate, KeyPair, PeerConfigBuilder};
+use wgctl::{AllowedIp, Backend, Device, DeviceUpdate, InterfaceName, KeyPair, PeerConfigBuilder};
 
 #[cfg(target_os = "linux")]
 const BACKEND: Backend = Backend::Kernel;
@@ -12,8 +12,10 @@ fn main() {
         panic!("Please use sudo privileges")
     }
 
+    let name = "test";
+
     let pair = KeyPair::generate();
-    let mut builder = wgctl::tools::quick::WgQuick::new("test").unwrap();
+    let mut builder = wgctl::tools::quick::WgQuick::new(name).unwrap();
     builder = builder.set_keypair(pair)
         .set_address("192.168.10.1/24".parse().unwrap())
         .set_listen_port(51822);
@@ -21,14 +23,10 @@ fn main() {
 
     builder.apply(BACKEND).unwrap();
 
-    println!("create wireguard interfaces: {}", "test");
+    println!("create wireguard interfaces: {}", name);
 
-    // let device = Device::get(&interface, Backend::Userspace).unwrap();
-    //
-    // for keypair in &keypair_list {
-    //     assert!(device
-    //         .peers
-    //         .iter()
-    //         .any(|p| p.config.public_key == keypair.public));
-    // }
+    let result = name.parse::<InterfaceName>().unwrap();
+    let device = Device::get(&result, Backend::Userspace).unwrap();
+
+    device.print().unwrap();
 }

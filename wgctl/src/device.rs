@@ -309,6 +309,7 @@ impl Device {
         }
 
         if let Some(latest_handshake) = &peer.stats.last_handshake_time {
+            // latest handshake may be 0 on Linux devices
             let timestamp = latest_handshake.duration_since(SystemTime::UNIX_EPOCH)
                 .expect("Time went backwards");
             if timestamp.as_secs() > 0 {
