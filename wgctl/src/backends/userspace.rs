@@ -14,7 +14,6 @@ static VAR_RUN_PATH: &str = "/var/run/wireguard";
 static RUN_PATH: &str = "/run/wireguard";
 
 fn get_base_folder() -> io::Result<PathBuf> {
-
     if Path::new(VAR_RUN_PATH).exists() {
         Ok(Path::new(VAR_RUN_PATH).to_path_buf())
     } else if Path::new(RUN_PATH).exists() {
@@ -143,11 +142,7 @@ impl DeviceConfigParser {
         match key {
             "private_key" => {
                 self.device.private_key = Some(Key::from_hex(value).map_err(|_| InvalidData)?);
-                self.device.public_key = self
-                    .device
-                    .private_key
-                    .as_ref()
-                    .map(|k| k.get_public());
+                self.device.public_key = self.device.private_key.as_ref().map(|k| k.get_public());
             }
             "listen_port" => {
                 self.device.listen_port = Some(value.parse().map_err(|_| InvalidData)?)

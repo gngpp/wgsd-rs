@@ -1,6 +1,6 @@
-use std::io;
-use ipnet::IpNet;
 use crate::{backends, InterfaceName};
+use ipnet::IpNet;
+use std::io;
 
 #[cfg(target_os = "macos")]
 fn command_handler(bin: &str, args: &[&str]) -> io::Result<std::process::Output> {
@@ -39,13 +39,13 @@ pub(crate) fn set_addr(interface: &InterfaceName, addr: IpNet) -> io::Result<()>
                 "alias",
             ],
         )
-            .map(|_output| ())
+        .map(|_output| ())
     } else {
         command_handler(
             "ifconfig",
             &[&real_interface, "inet6", &addr.to_string(), "alias"],
         )
-            .map(|_output| ())
+        .map(|_output| ())
     }
 }
 

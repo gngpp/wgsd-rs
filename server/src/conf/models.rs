@@ -1,8 +1,10 @@
-use crate::conf::endpoint::Node;
 use std::ops::{Deref, Not};
 
+use crate::args::{AddPeer, NewPeerRelayNetwork};
 use crate::conf::NodeOpt;
+use crate::wg;
 use serde::{Deserialize, Serialize};
+use crate::model::Node;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(super) struct WireGuard {

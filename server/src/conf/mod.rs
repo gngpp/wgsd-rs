@@ -1,7 +1,5 @@
 extern crate ipnet;
 
-use crate::conf::endpoint::{Interface, Node, Peer};
-use crate::conf::model::WireGuard;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 
@@ -9,10 +7,11 @@ use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use crate::conf::models::WireGuard;
+use crate::model::endpoint::{Interface, Peer};
+use crate::model::Node;
 
-pub mod endpoint;
-mod model;
-pub mod standard;
+pub mod models;
 
 #[async_trait]
 pub trait NodeOpt: Sized {
@@ -41,9 +40,8 @@ pub trait AsyncTryFrom<T>: Sized {
     async fn try_from(_: T) -> Result<Self, Self::Error>;
 }
 
-pub const DEFAULT_PATH: &str = "/etc/wireguard/wgsdc";
-pub const DEFAULT_DATA_PATH: &str = "/var/lib/wgsdc";
-pub const DEFAULT_FILE_SUFFIX: &str = ".yaml";
+const DEFAULT_PATH: &str = "/etc/wireguard/wgsdc";
+const DEFAULT_FILE_SUFFIX: &str = ".yaml";
 
 pub struct Configuration {
     path: PathBuf,

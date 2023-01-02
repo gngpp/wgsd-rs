@@ -1,5 +1,5 @@
-use crate::conf::endpoint::IpNet;
 use anyhow::anyhow;
+use ipnet::IpNet;
 
 // address parser
 pub(crate) fn parser_address(s: &str) -> anyhow::Result<std::net::IpAddr> {
@@ -53,8 +53,7 @@ pub(crate) fn parser_address_in_range(s: &str) -> anyhow::Result<Vec<IpNet>> {
     let vec = s.split(",").map(|v| v.trim()).collect::<Vec<&str>>();
     let mut res = Vec::new();
     for value in &vec {
-        let ip = value.parse::<ipnet::IpNet>()?;
-        res.push(IpNet::from(ip))
+        res.push(value.parse::<IpNet>()?)
     }
     Ok(res)
 }

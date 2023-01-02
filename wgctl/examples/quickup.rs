@@ -1,5 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr};
 use ipnet::IpNet;
+use std::net::{IpAddr, Ipv4Addr};
 use wgctl::{AllowedIp, Backend, Device, DeviceUpdate, InterfaceName, KeyPair, PeerConfigBuilder};
 
 #[cfg(target_os = "linux")]
@@ -16,10 +16,10 @@ fn main() {
 
     let pair = KeyPair::generate();
     let mut builder = wgctl::tools::quick::WgQuick::new(name).unwrap();
-    builder = builder.set_keypair(pair)
+    builder = builder
+        .set_keypair(pair)
         .set_address("192.168.10.1/24".parse().unwrap())
         .set_listen_port(51822);
-
 
     builder.apply(BACKEND).unwrap();
 

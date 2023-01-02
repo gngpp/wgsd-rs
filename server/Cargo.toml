@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.66"
 clap = { version = "4.0.29", features = ["derive"] }
-ipnet = "2.5.1"
+ipnet = { version = "2.5.1", features = ["serde"]}
 log = "0.4.17"
 env_logger = "0.10.0"
 chrono = "0.4.23"

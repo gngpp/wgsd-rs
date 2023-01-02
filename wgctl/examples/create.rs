@@ -14,8 +14,7 @@ fn main() {
     let pair = KeyPair::generate();
     let mut builder = DeviceUpdate::new();
 
-    builder = builder.set_keypair(pair)
-        .set_listen_port(51821);
+    builder = builder.set_keypair(pair).set_listen_port(51821);
 
     // add peer
     let keypair_list: Vec<_> = (0..2).map(|_| KeyPair::generate()).collect();

@@ -1,6 +1,5 @@
 use crate::args;
 
-use crate::conf::endpoint::Node;
 use crate::conf::{AsyncTryFrom, Configuration, NodeOpt};
 use clap::ArgMatches;
 

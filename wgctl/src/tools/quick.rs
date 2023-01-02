@@ -1,6 +1,6 @@
-use std::io;
+use crate::{DeviceUpdate, InterfaceName, InvalidInterfaceName, Key, KeyPair, PeerConfigBuilder};
 use ipnet::IpNet;
-use crate::{backends, DeviceUpdate, InterfaceName, InvalidInterfaceName, Key, KeyPair, PeerConfigBuilder};
+use std::io;
 
 pub struct WgQuick {
     interface: InterfaceName,
@@ -14,7 +14,6 @@ pub struct WgQuick {
 }
 
 impl WgQuick {
-
     pub fn new(name: &str) -> Result<WgQuick, InvalidInterfaceName> {
         let interface = <InterfaceName as std::str::FromStr>::from_str(name)?;
         Ok(Self {
@@ -119,7 +118,8 @@ impl WgQuick {
             update = update.replace_peers();
         }
 
-        update.add_peers(self.peers.as_slice())
+        update
+            .add_peers(self.peers.as_slice())
             .apply(&self.interface, backend)?;
 
         #[cfg(target_os = "linux")]
@@ -139,8 +139,4 @@ impl WgQuick {
 
         Ok(())
     }
-
 }
-
-
-

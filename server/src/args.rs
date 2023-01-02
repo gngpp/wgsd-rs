@@ -1,11 +1,11 @@
-use crate::conf::endpoint::IpNet;
-use crate::conf::standard::{
+use crate::standard::{
     DEFAULT_INTERFACE_ADDRESS, DEFAULT_INTERFACE_LISTEN_PORT, DEFAULT_MTU,
     DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, DEFAULT_PEER_PERSISTENT_KEEPALIVE,
 };
 use crate::parser;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
+use ipnet::IpNet;
 
 #[derive(clap::Parser)]
 #[command(author, version, about, long_about = None, arg_required_else_help = true)]
@@ -16,12 +16,8 @@ pub(crate) struct Opt {
     pub debug: bool,
 
     /// Configuration directory
-    #[arg(long, short, default_value = crate::conf::DEFAULT_PATH)]
+    #[arg(long, short, default_value = "/etc/wireguard/wgsdc")]
     pub dir: PathBuf,
-
-    // Database directory
-    #[arg(long, default_value = crate::conf::DEFAULT_DATA_PATH)]
-    pub data_dir: PathBuf,
 
     /// Subcommands
     #[command(subcommand)]
@@ -44,10 +40,8 @@ pub(crate) enum SubCommands {
     /// Print WireGuard configuration
     PrintPeer,
 
-    /// Up to add and set up an interface
     Up,
 
-    /// Down to tear down and remove an interface
     Down,
 
     Status,

@@ -5,10 +5,12 @@ use anyhow::anyhow;
 
 mod args;
 mod conf;
-mod db;
 mod handler;
 mod parser;
 mod wg;
+pub mod model;
+pub mod standard;
+mod db;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {

@@ -304,13 +304,19 @@ impl Device {
 
         if let Some(keepalive) = peer.config.persistent_keepalive_interval {
             if keepalive > 0 {
-                println!("  {}: every {} {}", "persistent keepalive".white().bold(), keepalive, "seconds".cyan())
+                println!(
+                    "  {}: every {} {}",
+                    "persistent keepalive".white().bold(),
+                    keepalive,
+                    "seconds".cyan()
+                )
             }
         }
 
         if let Some(latest_handshake) = &peer.stats.last_handshake_time {
             // latest handshake may be 0 on Linux devices
-            let timestamp = latest_handshake.duration_since(SystemTime::UNIX_EPOCH)
+            let timestamp = latest_handshake
+                .duration_since(SystemTime::UNIX_EPOCH)
                 .expect("Time went backwards");
             if timestamp.as_secs() > 0 {
                 println!(
@@ -324,17 +330,23 @@ impl Device {
         if peer.stats.tx_bytes > 0 || peer.stats.rx_bytes > 0 {
             use byte_unit::Byte;
 
-            let rx_byte = Byte::from(peer.stats.rx_bytes)
-                .get_appropriate_unit(true);
+            let rx_byte = Byte::from(peer.stats.rx_bytes).get_appropriate_unit(true);
 
-            let tx_byte = Byte::from(peer.stats.tx_bytes)
-                .get_appropriate_unit(true);
+            let tx_byte = Byte::from(peer.stats.tx_bytes).get_appropriate_unit(true);
             println!(
                 "  {}: {} {}, {} {}",
                 "transfer".white().bold(),
-                format!("{:.2} {}", rx_byte.get_value(), rx_byte.get_unit().to_string().cyan()),
+                format!(
+                    "{:.2} {}",
+                    rx_byte.get_value(),
+                    rx_byte.get_unit().to_string().cyan()
+                ),
                 "received",
-                format!("{:.2} {}", tx_byte.get_value(), tx_byte.get_unit().to_string().cyan()),
+                format!(
+                    "{:.2} {}",
+                    tx_byte.get_value(),
+                    tx_byte.get_unit().to_string().cyan()
+                ),
                 "sent"
             );
         }
