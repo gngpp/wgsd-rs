@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 log = "0.4.17"
+tempfile = "3.3.0"
