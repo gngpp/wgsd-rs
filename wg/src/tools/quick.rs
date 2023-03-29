@@ -122,19 +122,10 @@ impl WgQuick {
             .add_peers(self.peers.as_slice())
             .apply(&self.interface, backend)?;
 
-        #[cfg(target_os = "linux")]
-        use crate::tools::linux::{add_route, set_addr, set_up};
-
-        #[cfg(target_os = "macos")]
-        use crate::tools::macos::{add_route, set_addr, set_up};
-
-        let up = false;
+        super::set_up(&self.interface, self.mtu)?;
         for address in self.cidr {
-            set_addr(&self.interface, address)?;
-            if !up {
-                set_up(&self.interface, self.mtu)?;
-            }
-            add_route(&self.interface, address)?;
+            super::set_address(&self.interface, address)?;
+            super::add_route(&self.interface, address)?;
         }
 
         Ok(())

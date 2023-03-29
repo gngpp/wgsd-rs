@@ -9,21 +9,17 @@ use std::{
     process::{Command, Output},
     time::{Duration, SystemTime},
 };
-
-static VAR_RUN_PATH: &str = "/var/run/wireguard";
-static RUN_PATH: &str = "/run/wireguard";
+const VAR_RUN_PATH: &str = "/var/run/wireguard";
+const RUN_PATH: &str = "/run/wireguard";
 
 fn get_base_folder() -> io::Result<PathBuf> {
-    if Path::new(VAR_RUN_PATH).exists() {
-        Ok(Path::new(VAR_RUN_PATH).to_path_buf())
-    } else if Path::new(RUN_PATH).exists() {
-        Ok(Path::new(RUN_PATH).to_path_buf())
-    } else {
-        Err(io::Error::new(
+    let path = [VAR_RUN_PATH, RUN_PATH].iter().find(|p| Path::new(p).exists());
+    path.map(PathBuf::from).ok_or_else(|| {
+        io::Error::new(
             io::ErrorKind::NotFound,
             "WireGuard socket directory not found.",
-        ))
-    }
+        )
+    })
 }
 
 fn get_alias_name_file(name: &InterfaceName) -> io::Result<PathBuf> {
@@ -31,10 +27,11 @@ fn get_alias_name_file(name: &InterfaceName) -> io::Result<PathBuf> {
 }
 
 fn get_socket_file(name: &InterfaceName) -> io::Result<PathBuf> {
+    let base_folder = get_base_folder()?;
     if cfg!(target_os = "linux") {
-        Ok(get_base_folder()?.join(&format!("{}.sock", name)))
+        Ok(base_folder.join(&format!("{}.sock", name)))
     } else {
-        Ok(get_base_folder()?.join(&format!("{}.sock", get_tun_name(name)?)))
+        Ok(base_folder.join(&format!("{}.sock", get_tun_name(name)?)))
     }
 }
 
