@@ -23,7 +23,10 @@ fn main() {
     for keypair in keypair_list.iter().enumerate() {
         let ipv4addr = Ipv4Addr::new(100, 100, (100 + keypair.0) as u8, 10);
         let peer_config_builder = PeerConfigBuilder::new(&keypair.1.public)
-            .add_allowed_ip(IpAddr::V4(Ipv4Addr::new(192, 168, 10, (2 + keypair.0) as u8)), 32)
+            .add_allowed_ip(
+                IpAddr::V4(Ipv4Addr::new(192, 168, 10, (2 + keypair.0) as u8)),
+                32,
+            )
             .add_allowed_ips(&[AllowedIp::new(IpAddr::V4(ipv4addr), 24)]);
         builder = builder.add_peer(peer_config_builder)
     }
@@ -32,7 +35,10 @@ fn main() {
     let interface_name = "test".parse().unwrap();
     builder.apply(&interface_name, BACKEND).unwrap();
 
-    println!("create wireguard interfaces: {}", interface_name.to_string());
+    println!(
+        "create wireguard interfaces: {}",
+        interface_name.to_string()
+    );
 
     let device = Device::get(&interface_name, Backend::Userspace).unwrap();
 

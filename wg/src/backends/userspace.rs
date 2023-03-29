@@ -13,7 +13,9 @@ const VAR_RUN_PATH: &str = "/var/run/wireguard";
 const RUN_PATH: &str = "/run/wireguard";
 
 fn get_base_folder() -> io::Result<PathBuf> {
-    let path = [VAR_RUN_PATH, RUN_PATH].iter().find(|p| Path::new(p).exists());
+    let path = [VAR_RUN_PATH, RUN_PATH]
+        .iter()
+        .find(|p| Path::new(p).exists());
     path.map(PathBuf::from).ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::NotFound,
