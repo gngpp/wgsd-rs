@@ -8,7 +8,5 @@ async fn main() -> Result<(), DbErr> {
     let db = Database::connect("sqlite:/Users/gngpp/CLionProjects/wgsdc/db.sqlite").await?;
     // Setup Schema helper
     let schema = Schema::new(DbBackend::Sqlite);
-
-
     Ok(())
 }
