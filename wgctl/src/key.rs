@@ -59,7 +59,7 @@ impl Key {
         use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 
         // https://github.com/dalek-cryptography/x25519-dalek/blob/1c39ff92e0dfc0b24aa02d694f26f3b9539322a5/src/x25519.rs#L150
-        let point = (&ED25519_BASEPOINT_TABLE * &Scalar::from_bits(self.0)).to_montgomery();
+        let point = (*&ED25519_BASEPOINT_TABLE * &Scalar::from_bits(self.0)).to_montgomery();
 
         Self(point.to_bytes())
     }
