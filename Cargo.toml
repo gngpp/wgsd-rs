@@ -1,5 +1,5 @@
 [workspace]
-members = ["hosts", "client", "server", "wgctl"]
+members = ["hosts", "client", "server", "wg"]
 
 [profile.release]
 codegen-units = 1

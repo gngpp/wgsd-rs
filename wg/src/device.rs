@@ -433,7 +433,7 @@ impl Device {
 ///
 /// # Example
 /// ```rust
-/// use wgctl::*;
+/// use wg::*;
 /// use std::net::AddrParseError;
 /// fn try_main() -> Result<(), AddrParseError> {
 /// let our_keypair = KeyPair::generate();

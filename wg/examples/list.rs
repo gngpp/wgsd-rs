@@ -1,4 +1,4 @@
-use wgctl::{Backend, Device};
+use wg::{Backend, Device};
 
 #[cfg(target_os = "linux")]
 const BACKEND: Backend = Backend::Kernel;

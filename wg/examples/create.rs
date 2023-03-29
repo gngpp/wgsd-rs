@@ -1,5 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr};
-use wgctl::{AllowedIp, Backend, Device, DeviceUpdate, KeyPair, PeerConfigBuilder};
+use wg::{AllowedIp, Backend, Device, DeviceUpdate, KeyPair, PeerConfigBuilder};
 
 #[cfg(target_os = "linux")]
 const BACKEND: Backend = Backend::Kernel;
