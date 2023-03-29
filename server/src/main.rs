@@ -1,7 +1,8 @@
 extern crate core;
 
-use crate::args::SubCommands;
+
 use anyhow::anyhow;
+use sea_orm::{ActiveValue, Database, DbBackend, EntityTrait, Schema};
 
 mod args;
 mod conf;
@@ -10,10 +11,26 @@ mod parser;
 mod wg;
 pub mod model;
 pub mod standard;
-mod db;
+pub mod db;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
+    // Connecting SQLite
+    let db = Database::connect("sqlite:/Users/gngpp/CLionProjects/wgsdc/db.sqlite").await?;
+
+    crate::db::setup_schema(&db).await?;
+
+    let node = model::node::ActiveModel {
+        name: ActiveValue::Set("HappyTest".to_owned()),
+        relay: ActiveValue::Set(true),
+        ..Default::default()
+    };
+
+    let result = model::prelude::Node::insert(node)
+        .exec(&db)
+        .await?;
+    println!("{:?}", result);
+
     use clap::Parser;
     let wgsdc = args::Opt::parse();
     // enabled debug mode

@@ -1,8 +1,8 @@
-use std::ops::{Deref, Not};
+use std::ops::{Not};
 
-use crate::args::{AddPeer, NewPeerRelayNetwork};
+
 use crate::conf::NodeOpt;
-use crate::wg;
+
 use serde::{Deserialize, Serialize};
 use crate::model::Node;
 
@@ -90,7 +90,7 @@ impl NodeOpt for WireGuard {
     }
 
     async fn push(&mut self, node: Node) -> anyhow::Result<()> {
-        let mut node_list = self.node_list.get_or_insert_with(Vec::new);
+        let node_list = self.node_list.get_or_insert_with(Vec::new);
 
         if node.relay.not() {
             // no has relay node

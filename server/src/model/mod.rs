@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::wg;
 
 pub mod endpoint;
-
+pub mod node;
+pub mod prelude;
 
 // node configuration of wireguard
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
