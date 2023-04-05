@@ -1,7 +1,7 @@
+use crate::model::Node;
 use anyhow::Context;
 use ipnet::IpNet;
 use serde::{Deserialize, Serialize};
-use crate::model::Node;
 
 // interface configuration of wireguard
 #[derive(Debug, Default, Serialize, Deserialize)]

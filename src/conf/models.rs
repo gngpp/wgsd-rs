@@ -1,10 +1,9 @@
-use std::ops::{Not};
-
+use std::ops::Not;
 
 use crate::conf::NodeOpt;
 
-use serde::{Deserialize, Serialize};
 use crate::model::Node;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(super) struct WireGuard {

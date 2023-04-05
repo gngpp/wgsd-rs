@@ -1,11 +1,11 @@
+use crate::parser;
 use crate::standard::{
     DEFAULT_INTERFACE_ADDRESS, DEFAULT_INTERFACE_LISTEN_PORT, DEFAULT_MTU,
     DEFAULT_PEER_ENDPOINT_ALLOWED_IPS, DEFAULT_PEER_PERSISTENT_KEEPALIVE,
 };
-use crate::parser;
 use clap::{Args, Subcommand};
-use std::path::PathBuf;
 use ipnet::IpNet;
+use std::path::PathBuf;
 
 #[derive(clap::Parser)]
 #[command(author, version, about, long_about = None, arg_required_else_help = true)]

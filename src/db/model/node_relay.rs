@@ -5,22 +5,36 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "node")]
 pub struct Model {
+    // wireguard node ID
     #[sea_orm(primary_key)]
     pub id: i32,
+    // wireguard node server ID
+    pub parent_id: Option<i32>,
+    // wireguard server relay node
     pub relay: bool,
+    // wireguard node name
     pub name: String,
-    pub public_key: Option<String>,
-    pub private_key: Option<String>,
+    // wireguard node public key
+    pub public_key: String,
+    // wireguard node private key 
+    pub private_key: String,
+    // wireguard node listen port
     pub listen_port: Option<u16>,
+    // wireguard node dns parser
+    pub dns: Option<String>,
+    // wireguard node allowed ips
     pub allowed_ips: Option<String>,
+    // wireguard endpoint route allowed ips
     pub endpoint_allowed_ips: Option<String>,
     pub persistent_keepalive: Option<String>,
+    // wireguard relay node server enpint
     pub endpoint: Option<String>,
+    // wireguard mtu    
     pub mtu: Option<u32>,
     pub pre_up: Option<String>,
     pub post_up: Option<String>,
     pub pre_down: Option<String>,
-    pub post_down: Option<String>
+    pub post_down: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

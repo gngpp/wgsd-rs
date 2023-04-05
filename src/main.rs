@@ -1,34 +1,36 @@
 extern crate core;
 
+use std::{path::PathBuf, str::FromStr};
 
 use anyhow::anyhow;
-use sea_orm::{ActiveValue, Database, DbBackend, EntityTrait, Schema};
+use dirs::home_dir;
+use sea_orm::{ActiveValue, Database, EntityTrait};
 
 mod args;
 mod conf;
-mod handler;
-mod parser;
-mod wg;
-pub mod model;
-pub mod standard;
 pub mod db;
+mod handler;
+pub mod model;
+mod parser;
+pub mod standard;
+mod wg;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<(), Box<dyn std::error::Error>> {
-    // Connecting SQLite
-    let db = Database::connect("sqlite:/Users/gngpp/CLionProjects/wgsdc/db.sqlite").await?;
+    let test = dirs::home_dir().unwrap().join("db");
+    let db_path = test.as_path();
+    println!("{}", db_path.display());
+   
+    
+    db::initialize_database(test.clone()).await?;
 
-    crate::db::setup_schema(&db).await?;
-
-    let node = model::node::ActiveModel {
+    let node = db::model::node_relay::ActiveModel {
         name: ActiveValue::Set("HappyTest".to_owned()),
         relay: ActiveValue::Set(true),
         ..Default::default()
     };
-
-    let result = model::prelude::Node::insert(node)
-        .exec(&db)
-        .await?;
+    let db = sea_orm::Database::connect(format!("sqlite:{}", test.display())).await?;
+    let result = db::model::prelude::NodeRelay::insert(node).exec(&db).await?;
     println!("{:?}", result);
 
     use clap::Parser;

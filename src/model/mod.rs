@@ -1,12 +1,10 @@
-use ipnet::IpNet;
 use crate::args::{AddPeer, NewPeerRelayNetwork};
 use crate::model::endpoint::Endpoint;
-use serde::{Deserialize, Serialize};
 use crate::wg;
+use ipnet::IpNet;
+use serde::{Deserialize, Serialize};
 
 pub mod endpoint;
-pub mod node;
-pub mod prelude;
 
 // node configuration of wireguard
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -159,4 +157,3 @@ impl From<AddPeer> for Node {
         node
     }
 }
-
